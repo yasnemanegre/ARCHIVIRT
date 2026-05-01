@@ -3,6 +3,13 @@
 # ARCHIVIRT — Common Role: Base configuration for all VMs
 # ─────────────────────────────────────────────────────────────
 
+- name: Make DNS persistent (bypass systemd-resolved)
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    content: "nameserver 8.8.8.8\nnameserver 1.1.1.1\n"
+    force: yes
+  become: yes
+
 - name: Update apt cache
   ansible.builtin.apt:
     update_cache: true
@@ -86,3 +93,4 @@
     owner: ubuntu
     group: ubuntu
     mode: "0755"
+

@@ -33,17 +33,13 @@
       - telegraf
     state: present
 
-- name: Add Grafana apt repository
+- name: Install Grafana via direct package
   ansible.builtin.shell: |
-    curl -s https://packages.grafana.com/gpg.key | apt-key add -
-    echo "deb https://apt.grafana.com stable main" > /etc/apt/sources.list.d/grafana.list
-    apt update
-  changed_when: true
-
-- name: Install Grafana
-  ansible.builtin.apt:
-    name: grafana
-    state: present
+    wget -q https://dl.grafana.com/oss/release/grafana_10.4.2_amd64.deb -O /tmp/grafana.deb
+    apt-get install -y adduser libfontconfig1 musl 2>/dev/null || true
+    dpkg -i /tmp/grafana.deb && rm -f /tmp/grafana.deb
+  args:
+    creates: /usr/sbin/grafana-server
 
 - name: Deploy Telegraf configuration
   ansible.builtin.copy:
