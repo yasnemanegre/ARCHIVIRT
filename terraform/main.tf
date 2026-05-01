@@ -1,6 +1,4 @@
 terraform {
-  required_version = ">= 1.5.0"
-
   required_providers {
     libvirt = {
       source  = "dmacvicar/libvirt"
@@ -9,19 +7,13 @@ terraform {
   }
 }
 
-# ─────────────────────────────────────────────────────────────
-# Provider — connects to KVM hypervisor on archivirt-lab host
-# ─────────────────────────────────────────────────────────────
 provider "libvirt" {
-  uri = var.libvirt_uri
+  uri = "qemu:///system"
 }
 
-# ─────────────────────────────────────────────────────────────
-# Base OS Image — Ubuntu Server 22.04 LTS Cloud Image
-# ─────────────────────────────────────────────────────────────
 resource "libvirt_volume" "ubuntu_base" {
   name   = "ubuntu-22.04-base.qcow2"
-  pool   = var.storage_pool
-  source = var.ubuntu_cloud_image_path
+  pool   = "default"
+  source = "/var/lib/libvirt/images/ubuntu-22.04-server-cloudimg-amd64.img"
   format = "qcow2"
 }
