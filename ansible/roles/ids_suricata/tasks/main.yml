@@ -5,24 +5,18 @@
 # Monitoring interface: ens4 (tap on target subnet 10.0.2.0/24)
 # ─────────────────────────────────────────────────────────────
 
-- name: Add Suricata PPA repository
-  ansible.builtin.apt_repository:
-    repo: ppa:oisf/suricata-stable
-    state: present
-    update_cache: true
-
-- name: Install Suricata 6
+- name: Install Suricata from Ubuntu universe
   ansible.builtin.apt:
-    name:
-      - suricata
+    name: suricata
     state: present
+    update_cache: yes
 
 - name: Create Suricata log directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: suricata
-    group: suricata
+    owner: root
+    group: root
     mode: "0755"
   loop:
     - /var/log/suricata
