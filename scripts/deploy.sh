@@ -225,3 +225,12 @@ main() {
 }
 
 main "$@"
+
+# Enable inter-subnet routing (attack -> targets)
+enable_inter_subnet_routing() {
+  sudo iptables -I FORWARD 1 -i virbr2 -o virbr3 -j ACCEPT
+  sudo iptables -I FORWARD 1 -i virbr3 -o virbr2 -j ACCEPT
+  sudo netfilter-persistent save
+  echo "[+] Inter-subnet routing enabled"
+}
+enable_inter_subnet_routing
