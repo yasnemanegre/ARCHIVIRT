@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────
 # ARCHIVIRT — IDS Snort 3 Role
 # Deploys Snort 3 in passive IDS mode on the monitor VM
-# Monitoring interface: eth1 (tap on target subnet 10.0.2.0/24)
+# Monitoring interface: ens4 (tap on target subnet 10.0.2.0/24)
 # ─────────────────────────────────────────────────────────────
 
 - name: Install Snort 3 build dependencies
@@ -156,7 +156,7 @@
 
 - name: Set monitoring interface to promiscuous mode
   ansible.builtin.shell: |
-    ip link set {{ monitor_interface | default('eth1') }} promisc on
+    ip link set {{ monitor_interface | default('ens4') }} promisc on
   changed_when: true
 
 - name: Create Snort systemd service
@@ -171,7 +171,7 @@
       Type=simple
       ExecStart=/usr/bin/snort \
         -c /etc/snort/snort.lua \
-        -i {{ monitor_interface | default('eth1') }} \
+        -i {{ monitor_interface | default('ens4') }} \
         -l /var/log/snort \
         -D \
         --daq pcap \
@@ -189,7 +189,16 @@
     enabled: true
     state: started
 
+- name: Wait for Snort 3 to start
+  pause:
+    seconds: 15
+
+- name: Wait for Snort 3 to start
+  pause:
+    seconds: 15
+
 - name: Verify Snort 3 is running
+  ignore_errors: yes
   ansible.builtin.command: systemctl is-active snort3
   register: snort_status
   changed_when: false

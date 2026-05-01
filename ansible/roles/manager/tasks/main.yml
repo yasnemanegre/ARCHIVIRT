@@ -36,7 +36,7 @@
 - name: Add Grafana apt repository
   ansible.builtin.shell: |
     curl -s https://packages.grafana.com/gpg.key | apt-key add -
-    echo "deb https://packages.grafana.com/oss/deb stable main" > /etc/apt/sources.list.d/grafana.list
+    echo "deb https://apt.grafana.com stable main" > /etc/apt/sources.list.d/grafana.list
     apt update
   changed_when: true
 
