@@ -17,10 +17,10 @@ locals {
         ssh_authorized_keys:
           - ${local.ssh_pub_key}
     chpasswd:
-  list: |
-    ubuntu:archivirt123
-  expire: False
-package_update: true
+      list: |
+        ubuntu:archivirt123
+      expire: false
+    package_update: true
     packages:
       - openssh-server
       - net-tools

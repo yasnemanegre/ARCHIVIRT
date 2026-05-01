@@ -3,8 +3,8 @@
 **Automated Reproducible Cyber Hybrid Infrastructure for VIRTual SOAR Testing Labs**
 
 > Author: **Яснеманегре САВАДОГО** (Аспирант СПБГУПТД)  
-> Institution: St. Petersburg State University of Telecommunications named after Prof. M.A. Bonch-Bruevich  
-> Published: *"A framework for automated construction, deployment, and validation of virtual laboratories for testing the properties of SIEM, IDS and IPS"*
+> Institution: Saint Petersburg State University of Industrial Technologies and Design  
+> Published: *"A framework for automated construction, deployment, and validation of virtual laboratories for testing the SOAR properties"*
 
 ---
 
@@ -186,6 +186,5 @@ MIT License — see [LICENSE](LICENSE)
 
 ```
 Савадого Я. ARCHIVIRT: A framework for automated construction, deployment,
-and validation of virtual laboratories for testing the properties of SIEM,
-IDS and IPS. — СПбГУТД, 2024.
+and validation of virtual laboratories for testing the SOAR properties. — СПбГУПТД, 2026.
 ```
