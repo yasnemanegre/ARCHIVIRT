@@ -16,7 +16,6 @@ dist/
 build/
 
 # Results & outputs (generated data)
-results/
 *.json
 !monitoring/grafana/dashboard.json
 reports/
