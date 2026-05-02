@@ -9,12 +9,5 @@
     "SCN-004": {"name": "DDoS Slowloris", "runs": 10, "alerts": 12},
     "SCN-005": {"name": "Normal Traffic", "runs": 10, "alerts": 1670}
   },
-  "total_alerts": 3687,
-  "detection_rate_percent": {
-    "SCN-001": 100,
-    "SCN-002": 100,
-    "SCN-003": 100,
-    "SCN-004": 100,
-    "SCN-005": "baseline"
-  }
+  "total_alerts": 3687
 }
