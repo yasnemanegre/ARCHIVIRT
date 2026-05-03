@@ -1,0 +1,16 @@
+[
+  {
+    "ids": "Snort 3",
+    "total": 3000,
+    "clusters": 1,
+    "anomalies": 14,
+    "anomaly_rate": 0.47
+  },
+  {
+    "ids": "Suricata 6",
+    "total": 3000,
+    "clusters": 2,
+    "anomalies": 0,
+    "anomaly_rate": 0.0
+  }
+]
