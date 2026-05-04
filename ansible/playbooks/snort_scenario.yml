@@ -82,6 +82,12 @@
         src: "/tmp/snort3_{{ scenario }}_result.json"
         dest: "/tmp/snort3_{{ scenario }}_result.json"
         flat: yes
+    - name: Fetch raw alerts log
+      fetch:
+        src: "/var/log/snort3/{{ scenario }}/alert_json.txt"
+        dest: "/tmp/snort3_{{ scenario }}_alerts.json"
+        flat: yes
+      ignore_errors: yes
     - name: Show result
       debug:
         msg: "Snort3 {{ scenario }}: {{ alert_count.stdout }} alerts"

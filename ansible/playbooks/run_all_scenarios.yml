@@ -34,6 +34,18 @@
   vars:
     scenario: "SCN-005"
 
+- name: ARCHIVIRT - Run DBSCAN analysis
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Execute dbscan_analysis.py
+      shell: python3 /home/archivirt/ARCHIVIRT/scripts/dbscan_analysis.py
+      register: dbscan_result
+    - name: Show DBSCAN result
+      debug:
+        msg: "{{ dbscan_result.stdout_lines }}"
+
 - name: ARCHIVIRT - Generate final report
   hosts: localhost
   connection: local

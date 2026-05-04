@@ -73,6 +73,12 @@
       copy:
         content: "{\"scenario\":\"{{ scenario }}\",\"ids\":\"Suricata 6.0.4\",\"alerts\":{{ alert_count.stdout | default(0) }},\"date\":\"{{ ansible_date_time.date }}\"}\n"
         dest: "/tmp/suricata_{{ scenario }}_result.json"
+    - name: Fetch raw alerts log
+      fetch:
+        src: "/var/log/suricata/{{ scenario }}/eve.json"
+        dest: "/tmp/suricata_{{ scenario }}_eve.json"
+        flat: yes
+      ignore_errors: yes
     - name: Fetch result to localhost
       fetch:
         src: "/tmp/suricata_{{ scenario }}_result.json"

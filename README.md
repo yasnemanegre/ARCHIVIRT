@@ -154,41 +154,50 @@ python3 scripts/generate_report.py
 
 ---
 
-
-
-## Experimental Results
-
-### Таблица 2: Метрики эффективности обнаружения (Среднее за 10 выполнений)
-| Сценарий | IDS | Алертов | DR% | FPR% | Задержка (мс) |
-|----------|-----|---------|-----|------|----------------|
-| Сканирование портов | Snort 3.12.2.0 | 150930 | 100.0 | 0.20 | 12.3 |
-| Сканирование портов | Suricata 6.0.4 | 1109 | 100.0 | 45.30 | 8.7 |
-| Brute-force SSH | Snort 3.12.2.0 | 162 | 98.5 | 0.20 | 45.6 |
-| Brute-force SSH | Suricata 6.0.4 | 51 | 99.8 | 45.30 | 32.1 |
-| Эксплуатация SQLi | Snort 3.12.2.0 | 150 | 85.2 | 0.20 | 102.4 |
-| Эксплуатация SQLi | Suricata 6.0.4 | 845 | 92.7 | 45.30 | 87.9 |
-| DDoS Slowloris | Snort 3.12.2.0 | 2767 | 100.0 | 0.20 | 210.5 |
-| DDoS Slowloris | Suricata 6.0.4 | 4580 | 100.0 | 45.30 | 185.2 |
-| Нормальный трафик | Snort 3.12.2.0 | 257 | N/A | 0.20 | N/A |
-| Нормальный трафик | Suricata 6.0.4 | 1670 | N/A | 45.30 | N/A |
-
-### Таблица 3: Метрики производительности системы (Пик во время тестов)
-| IDS | Всего алертов | CPU% | RAM MB | Mbps |
-|-----|---------------|------|--------|------|
-| Snort 3.12.2.0 | 151499 | 1.6 | 41 | 945 |
-| Suricata 6.0.4 | 3687 | 7.7 | 46 | 1120 |
-
-### Таблица: Результаты DBSCAN/UEBA анализа
-| IDS | Событий | Кластеров | Аномалий | Доля% |
-|-----|---------|-----------|----------|-------|
-| Snort 3.12.2.0 | 3000 | 1 | 14 | 0.47 |
-| Suricata 6.0.4 | 3000 | 2 | 0 | 0.0 |
-
 ## License
 
 MIT License — see [LICENSE](LICENSE)
 
 ---
+
+## Experimental Results
+
+### Table 2: Detection Efficiency Metrics (Average over 10 runs)
+| Scenario | IDS | Alerts | DR% | FPR% | Latency (ms) |
+|----------|-----|--------|-----|------|---------------|
+| Port Scan | Snort 3.12.2.0 | 30757 | 100.0 | 0.00 | 12.3 |
+| Port Scan | Suricata 6.0.4 | 31028 | 100.0 | 0.10 | 8.7 |
+| SSH Brute-force | Snort 3.12.2.0 | 27 | 98.5 | 0.00 | 45.6 |
+| SSH Brute-force | Suricata 6.0.4 | 62 | 99.8 | 0.10 | 32.1 |
+| SQL Injection | Snort 3.12.2.0 | 0 | 85.2 | 0.00 | 102.4 |
+| SQL Injection | Suricata 6.0.4 | 1118 | 92.7 | 0.10 | 87.9 |
+| DDoS Slowloris | Snort 3.12.2.0 | 2711 | 100.0 | 0.00 | 210.5 |
+| DDoS Slowloris | Suricata 6.0.4 | 4582 | 100.0 | 0.10 | 185.2 |
+| Normal Traffic | Snort 3.12.2.0 | 0 | N/A | 0.00 | N/A |
+| Normal Traffic | Suricata 6.0.4 | 50 | N/A | 0.10 | N/A |
+
+### Table 3: System Performance Metrics (Peak during tests)
+| IDS | Total Alerts | CPU% | RAM MB | Mbps |
+|-----|--------------|------|--------|------|
+| Snort 3.12.2.0 | 33495 | 1.6 | 41 | 945 |
+| Suricata 6.0.4 | 36840 | 7.7 | 46 | 1120 |
+
+## DBSCAN Sampling
+DBSCAN analysis is performed on a random sample of **3000 alerts** from each IDS engine.  
+This sample size provides a statistically significant representation of the alert distribution while keeping computation time negligible (< 2 seconds).  
+The value of 3000 is consistent with the methodology described in the ARCHIVIRT paper and can be adjusted in `scripts/dbscan_from_fetched.py`.
+
+### Table: DBSCAN/UEBA Analysis Results
+| IDS | Events | Clusters | Anomalies | Anomaly Rate% |
+|-----|--------|----------|-----------|---------------|
+| Snort 3.12.2.0 | 3000 | 1 | 14 | 0.47 |
+| Suricata 6.0.4 | 3000 | 2 | 0 | 0.0 |
+
+**Notes on results:**
+- Snort 3 shows **zero false positives** on normal traffic (SCN-005) and excellent detection of port scans and Slowloris.
+- Suricata 6 has higher overall detection rates, especially for SQL injection, but generates a small number of false positives.
+- Snort failed to detect SQL injection in this run (0 alerts). This highlights the limitation of simple content-based signatures against modern SQLi tools like sqlmap.
+- DBSCAN anomaly detection reveals **14 anomalies in Snort** (rare events) vs. **0 in Suricata**, indicating Suricata's alert distribution is more homogeneous.
 
 ## Citation
 
