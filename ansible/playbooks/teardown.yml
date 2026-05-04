@@ -1,0 +1,21 @@
+---
+# ARCHIVIRT - Teardown playbook
+# Author: Yasnemanegre SAWADOGO (SPbGUPTD)
+# Stops all VMs and optionally destroys Terraform resources
+
+- name: Stop all virtual machines
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Shutdown VMs via virsh
+      shell: |
+        for vm in archivirt-manager archivirt-attacker archivirt-monitor-ids \
+                  archivirt-target-01 archivirt-target-02 archivirt-target-03; do
+          virsh destroy $vm 2>/dev/null || true
+        done
+      become: yes
+    - name: Optionally destroy Terraform resources (uncomment to use)
+      shell: echo "Terraform destroy not executed (comment out to enable)"
+      # shell: cd /home/archivirt/ARCHIVIRT/terraform && terraform destroy -auto-approve
+      when: false   # set to true to enable
