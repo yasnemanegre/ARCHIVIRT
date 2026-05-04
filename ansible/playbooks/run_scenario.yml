@@ -1,5 +1,5 @@
 ---
-# ARCHIVIRT - IDS Test Scenario Playbook (IaC compliant)
+# ARCHIVIRT - Snort3 IDS Test Scenario Playbook (IaC with auto-collect)
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook run_scenario.yml -e "scenario=SCN-001"
 
@@ -11,23 +11,22 @@
     snort_script: /opt/archivirt/scripts/run_snort.sh
 
   tasks:
-    - name: Setup traffic mirrors from all VMs
-      shell: |
-        sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
+    - name: Setup traffic mirrors
+      shell: sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
       delegate_to: localhost
       become: yes
 
-    - name: Deploy run_snort.sh to monitor
+    - name: Deploy run_snort.sh
       copy:
         src: /home/archivirt/ARCHIVIRT/scripts/run_snort.sh
         dest: /opt/archivirt/scripts/run_snort.sh
         mode: 0755
 
-    - name: Stop any previous Snort3 instance
+    - name: Stop previous Snort3
       shell: "bash {{ snort_script }} stop {{ scenario }}"
       ignore_errors: yes
 
-    - name: Start Snort3 for scenario
+    - name: Start Snort3
       shell: "bash {{ snort_script }} start {{ scenario }}"
 
 - name: ARCHIVIRT - Run attack scenario
@@ -40,8 +39,7 @@
     - name: "SCN-001 Port Scan"
       shell: |
         for i in $(seq 1 10); do
-          nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 \
-            10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
+          nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
           sleep 3
         done
       when: scenario == "SCN-001"
@@ -49,8 +47,7 @@
     - name: "SCN-002 SSH Brute-force"
       shell: |
         for i in $(seq 1 10); do
-          nmap -sS -Pn -p 22 --min-rate 500 -T4 \
-            10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
+          nmap -sS -Pn -p 22 --min-rate 500 -T4 10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
           sleep 3
         done
       when: scenario == "SCN-002"
@@ -62,14 +59,12 @@
             COOKIE=$(curl -s -c - 'http://10.0.2.11/dvwa/login.php' --data 'username=admin&password=password&Login=Login' | grep PHPSESSID | awk '{print $NF}')
             echo $COOKIE
           register: dvwa_cookie
-
-        - name: Run sqlmap with valid cookie
+        - name: Run sqlmap
           shell: |
             for i in $(seq 1 10); do
               sqlmap -u "http://10.0.2.11/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
                 --cookie="PHPSESSID={{ dvwa_cookie.stdout }};security=low" \
-                --batch --level=1 --risk=1 --technique=B \
-                --output-dir=/tmp/sqlmap_$i 2>/dev/null
+                --batch --level=1 --risk=1 --technique=B --output-dir=/tmp/sqlmap_$i 2>/dev/null
               sleep 5
             done
       when: scenario == "SCN-003"
@@ -77,8 +72,7 @@
     - name: "SCN-004 DDoS Slowloris"
       shell: |
         for i in $(seq 1 10); do
-          timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py \
-            10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null
+          timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py 10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null
           sleep 5
         done
       when: scenario == "SCN-004"
@@ -92,7 +86,7 @@
         done
       when: scenario == "SCN-005"
 
-- name: ARCHIVIRT - Stop Snort3 and collect results
+- name: ARCHIVIRT - Collect Snort3 results
   hosts: monitor
   become: yes
   vars:
@@ -104,16 +98,27 @@
       shell: "bash {{ snort_script }} stop {{ scenario }}"
       ignore_errors: yes
 
-    - name: Fetch alert_fast.txt
-      fetch:
-        src: "/var/log/snort3/{{ scenario }}/alert_fast.txt"
-        dest: "/tmp/snort3_{{ scenario }}.txt"
-        flat: yes
-
     - name: Count alerts
       shell: wc -l < /var/log/snort3/{{ scenario }}/alert_fast.txt
       register: alert_count
 
-    - name: Show results
+    - name: Update results JSON
+      copy:
+        content: |
+          {
+            "scenario": "{{ scenario }}",
+            "ids": "Snort 3.12.2.0",
+            "alerts": {{ alert_count.stdout | default(0) }},
+            "date": "{{ ansible_date_time.date }}"
+          }
+        dest: "/tmp/snort3_{{ scenario }}_result.json"
+
+    - name: Fetch result to localhost
+      fetch:
+        src: "/tmp/snort3_{{ scenario }}_result.json"
+        dest: "/tmp/snort3_{{ scenario }}_result.json"
+        flat: yes
+
+    - name: Show result
       debug:
-        msg: "{{ scenario }}: {{ alert_count.stdout }} alerts"
+        msg: "Snort3 {{ scenario }}: {{ alert_count.stdout }} alerts"
