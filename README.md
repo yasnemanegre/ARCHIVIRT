@@ -184,26 +184,6 @@ python3 scripts/generate_report.py
 | Snort 3.12.2.0 | 3000 | 1 | 14 | 0.47 |
 | Suricata 6.0.4 | 3000 | 2 | 0 | 0.0 |
 
-## Detection Metrics (average over 10 runs)
-| Scenario | IDS | Detection Rate (%) | False Positives (%) | Avg Latency (ms) |
-|----------|-----|--------------------|---------------------|------------------|
-| Port Scan | Snort 3 | 100.0 | 0.5 | 12.3 |
-| Port Scan | Suricata 6 | 100.0 | 0.2 | 8.7 |
-| SSH Brute-force | Snort 3 | 98.5 | 1.1 | 45.6 |
-| SSH Brute-force | Suricata 6 | 99.8 | 0.8 | 32.1 |
-| SQLi Exploit | Snort 3 | 85.2 | 0.3 | 102.4 |
-| SQLi Exploit | Suricata 6 | 92.7 | 0.4 | 87.9 |
-| DDoS Slowloris | Snort 3 | 65.3 | 0.0 | 210.5 |
-| DDoS Slowloris | Suricata 6 | 78.9 | 0.0 | 185.2 |
-
-### System Performance (peak during tests)
-| IDS | Avg CPU (%) | RAM Usage (MB) | Max Throughput (Mbps) |
-|-----|-------------|----------------|-----------------------|
-| Snort 3 | 68.2 | 512 | 945 |
-| Suricata 6 | 75.4 | 610 | 1120 |
-
----
-
 ## License
 
 MIT License — see [LICENSE](LICENSE)
