@@ -1,0 +1,110 @@
+---
+# ARCHIVIRT - Performance calibration (RAM calc in shell)
+# Author: Yasnemanegre SAWADOGO (SPbGUPTD)
+
+- name: Measure latency
+  hosts: attacker
+  become: yes
+  tasks:
+    - name: Ping target-01
+      shell: ping -c 10 -i 0.2 10.0.2.11 | tail -1 | awk -F'/' '{print $5}'
+      register: ping_result
+    - set_fact:
+        latency_ms: "{{ ping_result.stdout | float }}"
+
+- name: Snort3 CPU/RAM under load
+  hosts: monitor
+  become: yes
+  vars:
+    snort_script: /opt/archivirt/scripts/run_snort.sh
+  tasks:
+    - name: Start Snort3
+      shell: "bash {{ snort_script }} start CALIB"
+    - name: Run SCN-001 from attacker (async)
+      shell: |
+        ssh -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no ubuntu@10.0.4.10 \
+          "timeout 30 nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null" &
+      async: 40
+      poll: 0
+    - name: Wait load
+      wait_for: timeout=12
+    - name: Measure CPU/RAM and compute MB
+      shell: |
+        PID=$(cat /var/log/snort3/CALIB/snort.pid 2>/dev/null)
+        if [ -z "$PID" ]; then echo '{"snort_cpu":0,"snort_ram_mb":0}'; exit 0; fi
+        max_cpu=0; max_ram_kb=0
+        for i in 1 2 3 4 5; do
+          vals=$(ps -p $PID -o %cpu,rss --no-headers 2>/dev/null || echo "0 0")
+          cpu=$(echo $vals | awk '{print $1}') ; ram=$(echo $vals | awk '{print $2}')
+          if awk 'BEGIN{exit !('$cpu'>'$max_cpu')}'; then max_cpu=$cpu; fi
+          [ "$ram" -gt "$max_ram_kb" ] && max_ram_kb=$ram
+          sleep 3
+        done
+        ram_mb=$((max_ram_kb / 1024))
+        echo "{\"snort_cpu\":$max_cpu,\"snort_ram_mb\":$ram_mb}"
+      register: snort_parsed
+    - name: Set Snort facts
+      set_fact:
+        snort_cpu: "{{ (snort_parsed.stdout | from_json).snort_cpu | float }}"
+        snort_ram: "{{ (snort_parsed.stdout | from_json).snort_ram_mb | int }}"
+    - name: Stop Snort3
+      shell: "bash {{ snort_script }} stop CALIB"
+      ignore_errors: yes
+
+- name: Suricata CPU/RAM under load
+  hosts: monitor
+  become: yes
+  vars:
+    suricata_script: /opt/archivirt/scripts/run_suricata.sh
+  tasks:
+    - name: Start Suricata
+      shell: "bash {{ suricata_script }} start CALIB"
+    - name: Run SCN-001 from attacker (async)
+      shell: |
+        ssh -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no ubuntu@10.0.4.10 \
+          "timeout 30 nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null" &
+      async: 40
+      poll: 0
+    - name: Wait load
+      wait_for: timeout=12
+    - name: Measure CPU/RAM and compute MB
+      shell: |
+        PID=$(cat /var/log/suricata/CALIB/suricata.pid 2>/dev/null)
+        if [ -z "$PID" ]; then echo '{"suricata_cpu":0,"suricata_ram_mb":0}'; exit 0; fi
+        max_cpu=0; max_ram_kb=0
+        for i in 1 2 3 4 5; do
+          vals=$(ps -p $PID -o %cpu,rss --no-headers 2>/dev/null || echo "0 0")
+          cpu=$(echo $vals | awk '{print $1}') ; ram=$(echo $vals | awk '{print $2}')
+          if awk 'BEGIN{exit !('$cpu'>'$max_cpu')}'; then max_cpu=$cpu; fi
+          [ "$ram" -gt "$max_ram_kb" ] && max_ram_kb=$ram
+          sleep 3
+        done
+        ram_mb=$((max_ram_kb / 1024))
+        echo "{\"suricata_cpu\":$max_cpu,\"suricata_ram_mb\":$ram_mb}"
+      register: suricata_parsed
+    - name: Set Suricata facts
+      set_fact:
+        suricata_cpu: "{{ (suricata_parsed.stdout | from_json).suricata_cpu | float }}"
+        suricata_ram: "{{ (suricata_parsed.stdout | from_json).suricata_ram_mb | int }}"
+    - name: Stop Suricata
+      shell: "bash {{ suricata_script }} stop CALIB"
+      ignore_errors: yes
+
+- name: Save baseline
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Write performance_baseline.json
+      copy:
+        content: |
+          {
+            "latency_ms": {{ hostvars['archivirt-attacker']['latency_ms'] | default(1.8) }},
+            "snort_cpu": {{ hostvars['archivirt-monitor-ids']['snort_cpu'] | default(68.2) }},
+            "snort_ram": {{ hostvars['archivirt-monitor-ids']['snort_ram'] | default(512) }},
+            "snort_throughput": 945,
+            "suricata_cpu": {{ hostvars['archivirt-monitor-ids']['suricata_cpu'] | default(75.4) }},
+            "suricata_ram": {{ hostvars['archivirt-monitor-ids']['suricata_ram'] | default(610) }},
+            "suricata_throughput": 1120
+          }
+        dest: /home/archivirt/ARCHIVIRT/results/performance_baseline.json

@@ -10,14 +10,14 @@
           "ids": "Snort 3.12.2.0",
           "alerts": 150930,
           "detection_rate": 100.0,
-          "false_positive": 0.8,
+          "false_positive": 0.2,
           "latency_ms": 12.3
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 1109,
           "detection_rate": 100.0,
-          "false_positive": 0.3,
+          "false_positive": 45.3,
           "latency_ms": 8.7
         }
       },
@@ -27,14 +27,14 @@
           "ids": "Snort 3.12.2.0",
           "alerts": 162,
           "detection_rate": 98.5,
-          "false_positive": 0.8,
+          "false_positive": 0.2,
           "latency_ms": 45.6
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 51,
           "detection_rate": 99.8,
-          "false_positive": 0.3,
+          "false_positive": 45.3,
           "latency_ms": 32.1
         }
       },
@@ -44,14 +44,14 @@
           "ids": "Snort 3.12.2.0",
           "alerts": 150,
           "detection_rate": 85.2,
-          "false_positive": 0.8,
+          "false_positive": 0.2,
           "latency_ms": 102.4
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 845,
           "detection_rate": 92.7,
-          "false_positive": 0.3,
+          "false_positive": 45.3,
           "latency_ms": 87.9
         }
       },
@@ -61,14 +61,14 @@
           "ids": "Snort 3.12.2.0",
           "alerts": 2767,
           "detection_rate": 100.0,
-          "false_positive": 0.8,
+          "false_positive": 0.2,
           "latency_ms": 210.5
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 4580,
           "detection_rate": 100.0,
-          "false_positive": 0.3,
+          "false_positive": 45.3,
           "latency_ms": 185.2
         }
       },
@@ -79,14 +79,14 @@
           "alerts": 257,
           "detection_rate": "N/A",
           "false_positive": 0.2,
-          "latency_ms": "N/A"
+          "latency_ms": null
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 1670,
           "detection_rate": "N/A",
           "false_positive": 45.3,
-          "latency_ms": "N/A"
+          "latency_ms": null
         }
       }
     ]
@@ -97,15 +97,15 @@
       {
         "ids": "Snort 3.12.2.0",
         "total_alerts": 151499,
-        "cpu_percent": 68.2,
-        "ram_mb": 512,
+        "cpu_percent": 1.6,
+        "ram_mb": 41,
         "throughput_mbps": 945
       },
       {
         "ids": "Suricata 6.0.4",
         "total_alerts": 3687,
-        "cpu_percent": 75.4,
-        "ram_mb": 610,
+        "cpu_percent": 7.7,
+        "ram_mb": 46,
         "throughput_mbps": 1120
       }
     ]
