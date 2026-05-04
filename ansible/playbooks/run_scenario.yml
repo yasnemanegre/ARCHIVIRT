@@ -3,7 +3,7 @@
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook run_scenario.yml -e "scenario=SCN-001"
 
-- name: ARCHIVIRT - Start Snort3 on monitor
+- name: ARCHIVIRT - Setup mirrors and start Snort3
   hosts: monitor
   become: yes
   vars:
@@ -11,6 +11,12 @@
     snort_script: /opt/archivirt/scripts/run_snort.sh
 
   tasks:
+    - name: Setup traffic mirrors from all VMs
+      shell: |
+        sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
+      delegate_to: localhost
+      become: yes
+
     - name: Deploy run_snort.sh to monitor
       copy:
         src: /home/archivirt/ARCHIVIRT/scripts/run_snort.sh

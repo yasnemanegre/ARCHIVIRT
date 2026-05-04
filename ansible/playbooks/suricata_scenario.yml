@@ -1,9 +1,9 @@
 ---
-# ARCHIVIRT - Suricata Test Scenario Playbook (IaC compliant, no nohup)
+# ARCHIVIRT - Suricata Test Scenario Playbook (IaC compliant)
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook suricata_scenario.yml -e "scenario=SCN-001"
 
-- name: ARCHIVIRT - Start Suricata on monitor
+- name: ARCHIVIRT - Setup mirrors and start Suricata
   hosts: monitor
   become: yes
   vars:
@@ -11,6 +11,12 @@
     suricata_script: /opt/archivirt/scripts/run_suricata.sh
 
   tasks:
+    - name: Setup traffic mirrors from all VMs
+      shell: |
+        sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
+      delegate_to: localhost
+      become: yes
+
     - name: Deploy run_suricata.sh to monitor
       copy:
         src: /home/archivirt/ARCHIVIRT/scripts/run_suricata.sh
