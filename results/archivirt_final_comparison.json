@@ -9,16 +9,16 @@
         "snort": {
           "ids": "Snort 3.12.2.0",
           "alerts": 150930,
-          "detection_rate": 100.0,
+          "detection_rate": "N/A",
           "false_positive": 0.2,
-          "latency_ms": 12.3
+          "latency_ms": "N/A"
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 1109,
-          "detection_rate": 100.0,
+          "detection_rate": "N/A",
           "false_positive": 45.3,
-          "latency_ms": 8.7
+          "latency_ms": "N/A"
         }
       },
       {
@@ -26,16 +26,16 @@
         "snort": {
           "ids": "Snort 3.12.2.0",
           "alerts": 162,
-          "detection_rate": 100.0,
+          "detection_rate": "N/A",
           "false_positive": 0.2,
-          "latency_ms": 45.6
+          "latency_ms": "N/A"
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 51,
-          "detection_rate": 100.0,
+          "detection_rate": "N/A",
           "false_positive": 45.3,
-          "latency_ms": 32.1
+          "latency_ms": "N/A"
         }
       },
       {
@@ -43,16 +43,16 @@
         "snort": {
           "ids": "Snort 3.12.2.0",
           "alerts": 150,
-          "detection_rate": 100.0,
+          "detection_rate": "N/A",
           "false_positive": 0.2,
-          "latency_ms": 102.4
+          "latency_ms": "N/A"
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 845,
-          "detection_rate": 100.0,
+          "detection_rate": "N/A",
           "false_positive": 45.3,
-          "latency_ms": 87.9
+          "latency_ms": "N/A"
         }
       },
       {
@@ -60,14 +60,14 @@
         "snort": {
           "ids": "Snort 3.12.2.0",
           "alerts": 0,
-          "detection_rate": 0.0,
+          "detection_rate": "N/A",
           "false_positive": 0.2,
           "latency_ms": "N/A"
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 12,
-          "detection_rate": 100.0,
+          "detection_rate": "N/A",
           "false_positive": 45.3,
           "latency_ms": "N/A"
         }
