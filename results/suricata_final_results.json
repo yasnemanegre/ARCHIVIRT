@@ -5,41 +5,41 @@
   "scenarios": {
     "SCN-001": {
       "name": "Сканирование портов",
-      "alerts": 1109,
+      "alerts": 31028,
       "detection_rate": 100.0,
       "latency_ms": 8.7,
       "false_positive": 0.3
     },
     "SCN-002": {
       "name": "Brute-force SSH",
-      "alerts": 51,
+      "alerts": 62,
       "detection_rate": 99.8,
       "latency_ms": 32.1,
       "false_positive": 0.3
     },
     "SCN-003": {
       "name": "Эксплуатация SQLi",
-      "alerts": 845,
+      "alerts": 1118,
       "detection_rate": 92.7,
       "latency_ms": 87.9,
       "false_positive": 0.3
     },
     "SCN-004": {
       "name": "DDoS Slowloris",
-      "alerts": 4580,
+      "alerts": 4582,
       "detection_rate": 100.0,
       "latency_ms": 185.2,
       "false_positive": 0.3
     },
     "SCN-005": {
       "name": "Нормальный трафик",
-      "alerts": 1670,
+      "alerts": 50,
       "detection_rate": null,
       "latency_ms": null,
       "false_positive": 0.3
     }
   },
-  "total_alerts": 3687,
+  "total_alerts": 36840,
   "total_runs": 50,
   "performance": {
     "cpu_percent": 75.4,

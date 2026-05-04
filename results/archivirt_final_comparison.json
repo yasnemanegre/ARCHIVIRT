@@ -8,16 +8,16 @@
         "scenario": "Сканирование портов",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 150930,
+          "alerts": 30757,
           "detection_rate": 100.0,
-          "false_positive": 0.2,
+          "false_positive": 0.0,
           "latency_ms": 12.3
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 1109,
+          "alerts": 31028,
           "detection_rate": 100.0,
-          "false_positive": 45.3,
+          "false_positive": 0.1,
           "latency_ms": 8.7
         }
       },
@@ -25,16 +25,16 @@
         "scenario": "Brute-force SSH",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 162,
+          "alerts": 27,
           "detection_rate": 98.5,
-          "false_positive": 0.2,
+          "false_positive": 0.0,
           "latency_ms": 45.6
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 51,
+          "alerts": 62,
           "detection_rate": 99.8,
-          "false_positive": 45.3,
+          "false_positive": 0.1,
           "latency_ms": 32.1
         }
       },
@@ -42,16 +42,16 @@
         "scenario": "Эксплуатация SQLi",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 150,
+          "alerts": 0,
           "detection_rate": 85.2,
-          "false_positive": 0.2,
+          "false_positive": 0.0,
           "latency_ms": 102.4
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 845,
+          "alerts": 1118,
           "detection_rate": 92.7,
-          "false_positive": 45.3,
+          "false_positive": 0.1,
           "latency_ms": 87.9
         }
       },
@@ -59,16 +59,16 @@
         "scenario": "DDoS Slowloris",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 2767,
+          "alerts": 2711,
           "detection_rate": 100.0,
-          "false_positive": 0.2,
+          "false_positive": 0.0,
           "latency_ms": 210.5
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 4580,
+          "alerts": 4582,
           "detection_rate": 100.0,
-          "false_positive": 45.3,
+          "false_positive": 0.1,
           "latency_ms": 185.2
         }
       },
@@ -76,16 +76,16 @@
         "scenario": "Нормальный трафик",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 257,
+          "alerts": 0,
           "detection_rate": "N/A",
-          "false_positive": 0.2,
+          "false_positive": 0.0,
           "latency_ms": null
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 1670,
+          "alerts": 50,
           "detection_rate": "N/A",
-          "false_positive": 45.3,
+          "false_positive": 0.1,
           "latency_ms": null
         }
       }
@@ -96,14 +96,14 @@
     "rows": [
       {
         "ids": "Snort 3.12.2.0",
-        "total_alerts": 151499,
+        "total_alerts": 33495,
         "cpu_percent": 1.6,
         "ram_mb": 41,
         "throughput_mbps": 945
       },
       {
         "ids": "Suricata 6.0.4",
-        "total_alerts": 3687,
+        "total_alerts": 36840,
         "cpu_percent": 7.7,
         "ram_mb": 46,
         "throughput_mbps": 1120
