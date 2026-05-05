@@ -1,6 +1,6 @@
 {
   "title": "ARCHIVIRT - IDS Comparison Report",
-  "date": "2026-05-04",
+  "date": "2026-05-05",
   "table2": {
     "title": "Table 2: Detection Efficiency Metrics (Average over 10 runs)",
     "rows": [
@@ -117,15 +117,15 @@
         "ids": "Snort 3.12.2.0",
         "events": 3000,
         "clusters": 3,
-        "anomalies": 5,
-        "anomaly_rate": 0.17
+        "anomalies": 8,
+        "anomaly_rate": 0.27
       },
       {
         "ids": "Suricata 6.0.4",
         "events": 3000,
-        "clusters": 3,
-        "anomalies": 3,
-        "anomaly_rate": 0.1
+        "clusters": 2,
+        "anomalies": 0,
+        "anomaly_rate": 0.0
       }
     ]
   }

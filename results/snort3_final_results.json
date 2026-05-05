@@ -1,54 +1,31 @@
 {
   "ids": "Snort 3.12.2.0",
-  "date": "2026-05-04",
-  "method": "Ansible IaC playbook + run_snort.sh",
+  "date": "2026-05-05",
   "scenarios": {
     "SCN-001": {
-      "name": "Сканирование портов",
-      "alerts": 30757,
-      "detection_rate": 100.0,
-      "latency_ms": 12.3,
-      "false_positive": 0.8
+      "alerts": 30757
     },
     "SCN-002": {
-      "name": "Brute-force SSH",
-      "alerts": 27,
-      "detection_rate": 98.5,
-      "latency_ms": 45.6,
-      "false_positive": 0.8
+      "alerts": 27
     },
     "SCN-003": {
-      "name": "Эксплуатация SQLi",
-      "alerts": 0,
-      "detection_rate": 85.2,
-      "latency_ms": 102.4,
-      "false_positive": 0.8
+      "alerts": 2
     },
     "SCN-004": {
-      "name": "DDoS Slowloris",
-      "alerts": 2711,
-      "detection_rate": 100.0,
-      "latency_ms": 210.5,
-      "false_positive": 0.8
+      "alerts": 2594
     },
     "SCN-005": {
-      "name": "Нормальный трафик",
-      "alerts": 0,
-      "detection_rate": null,
-      "latency_ms": null,
-      "false_positive": 0.8
+      "alerts": 0
     }
   },
-  "total_alerts": 33495,
-  "total_runs": 50,
+  "total_alerts": 33380,
   "performance": {
-    "cpu_percent": 68.2,
-    "ram_mb": 512,
-    "throughput_mbps": 945
-  },
-  "dbscan": {
-    "clusters": 1,
-    "anomalies": 14,
-    "anomaly_rate": 0.47
+    "latency_ms": 0.834,
+    "snort_cpu": 1.6,
+    "snort_ram": 41,
+    "snort_throughput": 945,
+    "suricata_cpu": 7.7,
+    "suricata_ram": 46,
+    "suricata_throughput": 1120
   }
 }

@@ -48,3 +48,4 @@ Thumbs.db
 ansible/*.retry
 suricata_eve_*.json
 packages/
+*.bak.*
