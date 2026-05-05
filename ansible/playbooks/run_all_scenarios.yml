@@ -1,4 +1,3 @@
----
 # ARCHIVIRT - Run all scenarios for both IDS (master playbook)
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook run_all_scenarios.yml -i ansible/inventory/hosts.ini
@@ -39,14 +38,13 @@
   connection: local
   gather_facts: no
   tasks:
+    - name: Execute dbscan_from_fetched.py
+      shell: python3 /home/archivirt/ARCHIVIRT/scripts/dbscan_from_fetched.py
+      register: dbscan_result
 
-- name: Execute dbscan_from_fetched.py
-  shell: python3 /home/archivirt/ARCHIVIRT/scripts/dbscan_from_fetched.py
-  register: dbscan_result
-
-- name: Show DBSCAN result
-  debug:
-  msg: "{{ dbscan_result.stdout_lines }}"
+    - name: Show DBSCAN result
+      debug:
+        msg: "{{ dbscan_result.stdout_lines }}"
 
 - name: ARCHIVIRT - Generate final report
   hosts: localhost
@@ -56,6 +54,7 @@
     - name: Run generate_report.py
       shell: python3 /home/archivirt/ARCHIVIRT/scripts/generate_report.py
       register: report
+
     - name: Show report summary
       debug:
         msg: "{{ report.stdout_lines }}"
