@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Генератор отчёта ARCHIVIRT (русская версия) – только реальные данные.
-Читает: results/snort3_final_results.json, results/suricata_final_results.json,
-        results/performance_baseline.json, results/dbscan_latest.json
-Выводит: Таблицы 2, 3, 4 и файл archivirt_final_comparison.json
+ARCHIVIRT - IDS Comparison Report Generator (English version)
+Reads: results/snort3_final_results.json, results/suricata_final_results.json,
+       results/performance_baseline.json, results/dbscan_latest.json
+Output: results/archivirt_final_comparison.json (Tables 2, 3, 4)
 """
+
 import json, os
 from datetime import date
 
@@ -30,17 +31,14 @@ def load_dbscan():
         return {"snort": {}, "suricata": {}}
     snort_db = db.get("snort_dbscan", {})
     suricata_db = db.get("suricata_dbscan", {})
-    return {
-        "snort": snort_db,
-        "suricata": suricata_db
-    }
+    return {"snort": snort_db, "suricata": suricata_db}
 
-SCENARIO_RU = {
-    "SCN-001": "Сканирование портов",
-    "SCN-002": "Brute-force SSH",
-    "SCN-003": "SQL-инъекция",
+SCENARIO_EN = {
+    "SCN-001": "Port Scan",
+    "SCN-002": "SSH Brute-force",
+    "SCN-003": "SQL Injection",
     "SCN-004": "DDoS Slowloris",
-    "SCN-005": "Нормальный трафик"
+    "SCN-005": "Normal Traffic"
 }
 
 def build_report():
@@ -50,19 +48,19 @@ def build_report():
     dbscan = load_dbscan()
 
     if not snort or not suricata:
-        print("ОШИБКА: не найдены файлы результатов")
+        print("ERROR: missing result files")
         return None
 
     snort_sc = safe_get(snort, "scenarios", {})
     suricata_sc = safe_get(suricata, "scenarios", {})
 
-    # Таблица 2
-    table2 = {"title": "Таблица 2: Метрики эффективности обнаружения (среднее за 10 выполнений)", "rows": []}
+    # Table 2 – Detection Efficiency
+    table2 = {"title": "Table 2: Detection Efficiency Metrics (average over 10 runs)", "rows": []}
     for sid in ["SCN-001","SCN-002","SCN-003","SCN-004","SCN-005"]:
         s = snort_sc.get(sid, {})
         u = suricata_sc.get(sid, {})
         row = {
-            "scenario": SCENARIO_RU.get(sid, sid),
+            "scenario": SCENARIO_EN.get(sid, sid),
             "snort": {
                 "alerts": safe_get(s, "alerts", 0),
                 "detection": safe_get(s, "detection_rate", "N/A"),
@@ -78,15 +76,25 @@ def build_report():
         }
         table2["rows"].append(row)
 
-    # Таблица 3
-    table3 = {"title": "Таблица 3: Метрики производительности системы (пик во время тестов)", "rows": []}
-    snort_perf = {"ids": "Snort", "cpu": perf.get("snort_cpu","N/A"), "ram": perf.get("snort_ram","N/A"), "mbit": perf.get("snort_throughput","N/A")}
-    suricata_perf = {"ids": "Suricata", "cpu": perf.get("suricata_cpu","N/A"), "ram": perf.get("suricata_ram","N/A"), "mbit": perf.get("suricata_throughput","N/A")}
+    # Table 3 – System Performance
+    table3 = {"title": "Table 3: System Performance Metrics (peak during tests)", "rows": []}
+    snort_perf = {
+        "ids": "Snort",
+        "cpu": perf.get("snort_cpu","N/A"),
+        "ram": perf.get("snort_ram","N/A"),
+        "mbit": perf.get("snort_throughput","N/A")
+    }
+    suricata_perf = {
+        "ids": "Suricata",
+        "cpu": perf.get("suricata_cpu","N/A"),
+        "ram": perf.get("suricata_ram","N/A"),
+        "mbit": perf.get("suricata_throughput","N/A")
+    }
     table3["rows"].append(snort_perf)
     table3["rows"].append(suricata_perf)
 
-    # Таблица 4 – DBSCAN
-    table4 = {"title": "Таблица 4: Результаты DBSCAN/UEBA анализа", "rows": []}
+    # Table 4 – DBSCAN Analysis
+    table4 = {"title": "Table 4: DBSCAN/UEBA Analysis Results", "rows": []}
     for ids_key, ids_name in [("snort","Snort"), ("suricata","Suricata")]:
         d = dbscan.get(ids_key, {})
         table4["rows"].append({
@@ -98,7 +106,7 @@ def build_report():
         })
 
     return {
-        "title": "ARCHIVIRT - Сравнительный отчёт IDS",
+        "title": "ARCHIVIRT - IDS Comparison Report",
         "date": str(date.today()),
         "table2": table2,
         "table3": table3,
@@ -108,10 +116,10 @@ def build_report():
 def print_report(rep):
     if not rep:
         return
-    # Таблица 2
+    # Table 2
     print("=" * 90)
     print(rep["table2"]["title"])
-    header = f"{'Сценарий':<22} {'IDS':<12} {'Алертов':>7} {'Обнар.%':>7} {'Лож.%':>7} {'Задержка(мс)':>13}"
+    header = f"{'Scenario':<22} {'IDS':<12} {'Alerts':>7} {'Detect%':>8} {'FPR%':>7} {'Lat(ms)':>10}"
     print(header)
     print("-" * len(header))
     for row in rep["table2"]["rows"]:
@@ -121,33 +129,33 @@ def print_report(rep):
             det = f"{d['detection']:.1f}" if isinstance(d['detection'], (int,float)) else str(d['detection'])
             fpr = f"{d['fpr']:.2f}" if isinstance(d['fpr'], (int,float)) else str(d['fpr'])
             lat = f"{d['latency']:.1f}" if isinstance(d['latency'], (int,float)) else str(d['latency'])
-            print(f"{row['scenario']:<22} {name:<12} {d['alerts']:>7} {det:>7} {fpr:>7} {lat:>13}")
+            print(f"{row['scenario']:<22} {name:<12} {d['alerts']:>7} {det:>8} {fpr:>7} {lat:>10}")
         print()
 
-    # Таблица 3
+    # Table 3
     print("=" * 70)
     print(rep["table3"]["title"])
-    header3 = f"{'IDS':<12} {'CPU %':>6} {'RAM МБ':>6} {'Мбит/с':>7}"
+    header3 = f"{'IDS':<12} {'CPU%':>6} {'RAM MB':>7} {'Mbps':>7}"
     print(header3)
     print("-" * 35)
     for r in rep["table3"]["rows"]:
         cpu = f"{r['cpu']:.1f}" if isinstance(r['cpu'], (int,float)) else str(r['cpu'])
         ram = f"{r['ram']:.1f}" if isinstance(r['ram'], (int,float)) else str(r['ram'])
         mbit = f"{r['mbit']:.1f}" if isinstance(r['mbit'], (int,float)) else str(r['mbit'])
-        print(f"{r['ids']:<12} {cpu:>6} {ram:>6} {mbit:>7}")
+        print(f"{r['ids']:<12} {cpu:>6} {ram:>7} {mbit:>7}")
 
-    # Таблица 4
+    # Table 4
     print("\n" + "=" * 70)
     print(rep["table4"]["title"])
-    header4 = f"{'IDS':<12} {'Событий':>7} {'Кластеров':>9} {'Аномалий':>9} {'Доля %':>7}"
+    header4 = f"{'IDS':<12} {'Events':>7} {'Clusters':>10} {'Anomalies':>10} {'Rate%':>7}"
     print(header4)
-    print("-" * 46)
+    print("-" * 47)
     for r in rep["table4"]["rows"]:
         eve = str(r['events'])
         clu = str(r['clusters'])
         ano = str(r['anomalies'])
         rate = f"{r['anomaly_rate']:.2f}" if isinstance(r['anomaly_rate'], (int,float)) else str(r['anomaly_rate'])
-        print(f"{r['ids']:<12} {eve:>7} {clu:>9} {ano:>9} {rate:>7}")
+        print(f"{r['ids']:<12} {eve:>7} {clu:>10} {ano:>10} {rate:>7}")
 
 if __name__ == "__main__":
     rep = build_report()
@@ -155,8 +163,8 @@ if __name__ == "__main__":
         outpath = os.path.join(RESULTS_DIR, "archivirt_final_comparison.json")
         with open(outpath, "w") as f:
             json.dump(rep, f, indent=2, ensure_ascii=False)
-        print(f"Сохранено: {outpath}\n")
+        print(f"Saved: {outpath}\n")
         print_report(rep)
     else:
-        print("ОШИБКА при создании отчёта")
+        print("ERROR: could not build comparison")
         exit(1)
