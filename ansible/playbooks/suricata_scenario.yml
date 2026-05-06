@@ -1,5 +1,5 @@
 ---
-# ARCHIVIRT - Suricata IDS Test Scenario Playbook (with attack timestamps)
+# ARCHIVIRT - Suricata IDS Test Scenario Playbook (with attack timestamps + fetch + correct logs)
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook suricata_scenario.yml -e "scenario=SCN-001"
 
@@ -97,6 +97,13 @@
         done
       when: scenario == "SCN-005"
 
+    - name: Fetch attack start times to localhost
+      fetch:
+        src: "/tmp/attack_start_times_{{ scenario }}.txt"
+        dest: "/tmp/attack_start_times_{{ scenario }}.txt"
+        flat: yes
+      when: scenario is defined
+
 - name: ARCHIVIRT - Stop Suricata and collect results
   hosts: monitor
   become: yes
@@ -107,8 +114,8 @@
     - name: Stop Suricata
       shell: "bash {{ suricata_script }} stop {{ scenario }}"
       ignore_errors: yes
-    - name: Count alerts
-      shell: wc -l < /var/log/suricata/{{ scenario }}/alert_fast.txt
+    - name: Count alerts from fast.log
+      shell: wc -l < /var/log/suricata/{{ scenario }}/fast.log
       register: alert_count
     - name: Save result to JSON
       copy:
@@ -119,9 +126,9 @@
         src: "/tmp/suricata_{{ scenario }}_result.json"
         dest: "/tmp/suricata_{{ scenario }}_result.json"
         flat: yes
-    - name: Fetch raw alerts log
+    - name: Fetch raw eve.json (alerts)
       fetch:
-        src: "/var/log/suricata/{{ scenario }}/alert_json.txt"
+        src: "/var/log/suricata/{{ scenario }}/eve.json"
         dest: "/tmp/suricata_{{ scenario }}_alerts.json"
         flat: yes
       ignore_errors: yes

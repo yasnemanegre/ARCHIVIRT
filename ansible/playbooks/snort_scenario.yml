@@ -1,5 +1,5 @@
 ---
-# ARCHIVIRT - Snort3 IDS Test Scenario Playbook (with attack timestamps)
+# ARCHIVIRT - Snort3 IDS Test Scenario Playbook (with attack timestamps + fetch)
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook snort_scenario.yml -e "scenario=SCN-001"
 
@@ -96,6 +96,13 @@
           sleep 3
         done
       when: scenario == "SCN-005"
+
+    - name: Fetch attack start times to localhost
+      fetch:
+        src: "/tmp/attack_start_times_{{ scenario }}.txt"
+        dest: "/tmp/attack_start_times_{{ scenario }}.txt"
+        flat: yes
+      when: scenario is defined
 
 - name: ARCHIVIRT - Stop Snort3 and collect results
   hosts: monitor

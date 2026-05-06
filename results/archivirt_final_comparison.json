@@ -1,127 +1,115 @@
 {
-  "title": "ARCHIVIRT - IDS Comparison Report",
-  "date": "2026-05-05",
+  "title": "ARCHIVIRT - Сравнительный отчёт IDS",
+  "date": "2026-05-06",
   "table2": {
-    "title": "Table 2: Detection Efficiency Metrics (Average over 10 runs)",
+    "title": "Таблица 2: Метрики эффективности обнаружения (среднее за 10 выполнений)",
     "rows": [
       {
-        "scenario": "Port Scan",
+        "scenario": "Сканирование портов",
         "snort": {
-          "ids": "Snort 3.12.2.0",
-          "alerts": 30757,
-          "detection_rate": 100.0,
-          "false_positive": 0.0,
-          "latency_ms": 12.3
+          "alerts": 30604,
+          "detection": 0.0,
+          "fpr": 0.0,
+          "latency": 0.0
         },
         "suricata": {
-          "ids": "Suricata 6.0.4",
-          "alerts": 31028,
-          "detection_rate": 100.0,
-          "false_positive": 0.1,
-          "latency_ms": 8.7
+          "alerts": 29895,
+          "detection": 100.0,
+          "fpr": 0.32,
+          "latency": 460.9
         }
       },
       {
-        "scenario": "SSH Brute-force",
+        "scenario": "Brute-force SSH",
         "snort": {
-          "ids": "Snort 3.12.2.0",
           "alerts": 27,
-          "detection_rate": 98.5,
-          "false_positive": 0.0,
-          "latency_ms": 45.6
+          "detection": 0.0,
+          "fpr": 0.0,
+          "latency": 0.0
         },
         "suricata": {
-          "ids": "Suricata 6.0.4",
-          "alerts": 62,
-          "detection_rate": 99.8,
-          "false_positive": 0.1,
-          "latency_ms": 32.1
+          "alerts": 119,
+          "detection": 100.0,
+          "fpr": 0.32,
+          "latency": 647.6
         }
       },
       {
-        "scenario": "SQL Injection",
+        "scenario": "SQL-инъекция",
         "snort": {
-          "ids": "Snort 3.12.2.0",
           "alerts": 0,
-          "detection_rate": 85.2,
-          "false_positive": 0.0,
-          "latency_ms": 102.4
+          "detection": 0.0,
+          "fpr": 0.0,
+          "latency": 0.0
         },
         "suricata": {
-          "ids": "Suricata 6.0.4",
-          "alerts": 1118,
-          "detection_rate": 92.7,
-          "false_positive": 0.1,
-          "latency_ms": 87.9
+          "alerts": 1589,
+          "detection": 100.0,
+          "fpr": 0.32,
+          "latency": 537.6
         }
       },
       {
         "scenario": "DDoS Slowloris",
         "snort": {
-          "ids": "Snort 3.12.2.0",
-          "alerts": 2711,
-          "detection_rate": 100.0,
-          "false_positive": 0.0,
-          "latency_ms": 210.5
+          "alerts": 2409,
+          "detection": 0.0,
+          "fpr": 0.0,
+          "latency": 0.0
         },
         "suricata": {
-          "ids": "Suricata 6.0.4",
-          "alerts": 4582,
-          "detection_rate": 100.0,
-          "false_positive": 0.1,
-          "latency_ms": 185.2
+          "alerts": 6374,
+          "detection": 100.0,
+          "fpr": 0.32,
+          "latency": 293.8
         }
       },
       {
-        "scenario": "Normal Traffic",
+        "scenario": "Нормальный трафик",
         "snort": {
-          "ids": "Snort 3.12.2.0",
           "alerts": 0,
-          "detection_rate": "N/A",
-          "false_positive": 0.0,
-          "latency_ms": "N/A"
+          "detection": "N/A",
+          "fpr": 0.0,
+          "latency": "N/A"
         },
         "suricata": {
-          "ids": "Suricata 6.0.4",
-          "alerts": 50,
-          "detection_rate": "N/A",
-          "false_positive": 0.1,
-          "latency_ms": "N/A"
+          "alerts": 122,
+          "detection": "N/A",
+          "fpr": 0.32,
+          "latency": "N/A"
         }
       }
     ]
   },
   "table3": {
-    "title": "Table 3: System Performance Metrics (Peak during tests)",
+    "title": "Таблица 3: Метрики производительности системы (пик во время тестов)",
     "rows": [
       {
-        "ids": "Snort 3.12.2.0",
-        "total_alerts": 33495,
-        "cpu_percent": 1.6,
-        "ram_mb": 41,
-        "throughput_mbps": 945
+        "ids": "Snort",
+        "cpu": 1.6,
+        "ram": 41,
+        "mbit": 945
       },
       {
-        "ids": "Suricata 6.0.4",
-        "total_alerts": 36840,
-        "cpu_percent": 7.7,
-        "ram_mb": 46,
-        "throughput_mbps": 1120
+        "ids": "Suricata",
+        "cpu": 7.7,
+        "ram": 46,
+        "mbit": 1120
       }
     ]
   },
-  "table_dbscan": {
-    "title": "Table: DBSCAN/UEBA Analysis Results",
+  "table4": {
+    "title": "Таблица 4: Результаты DBSCAN/UEBA анализа",
     "rows": [
       {
-        "ids": "Snort 3.12.2.0",
+        "ids": "Snort",
         "events": 3000,
         "clusters": 3,
-        "anomalies": 8,
-        "anomaly_rate": 0.27
+        "anomalies": 10,
+        "anomaly_rate": 0.33
       },
       {
-        "ids": "Suricata 6.0.4",
+        "ids": "Suricata",
         "events": 3000,
         "clusters": 2,
         "anomalies": 0,
