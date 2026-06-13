@@ -38,9 +38,6 @@
       - name: ovs-attack
         ip:   "10.0.4.1/24"
         dhcp_range: "10.0.4.10,10.0.4.50,12h"
-      - name: ovs-manager
-        ip:   "10.0.5.1/24"
-        dhcp_range: "10.0.5.10,10.0.5.50,12h"
 
   tasks:
 
@@ -238,18 +235,3 @@
           - "   Next step: terraform apply"
 
 # --- patch: persist virbr1 route for archivirt-manager ---
-- name: ARCHIVIRT - Persist virbr1 route for manager network
-  hosts: localhost
-  connection: local
-  become: yes
-  gather_facts: no
-  tasks:
-    - name: Add virbr1 route (runtime)
-      command: ip route add 10.0.5.0/24 dev virbr1 src 10.0.5.1
-      ignore_errors: yes
-
-    - name: Persist virbr1 route in archivirt-ovs-ip.sh
-      lineinfile:
-        path: /usr/local/bin/archivirt-ovs-ip.sh
-        line: "ip route add 10.0.5.0/24 dev virbr1 src 10.0.5.1 2>/dev/null || true"
-        insertbefore: 'echo "ARCHIVIRT'
