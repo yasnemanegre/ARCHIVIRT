@@ -42,7 +42,7 @@
       shell: |
         cd /var/spool/apt-mirror/packages
         apt-get download \
-          suricata snort nmap tcpreplay \
+          suricata snort nmap tcpreplay libhwloc15 libhwloc-plugins libpciaccess0 libdumbnet1 \
           net-tools iproute2 tcpdump curl wget vim htop git \
           python3 python3-pip python3-wheel python3-dev \
           ca-certificates gnupg lsb-release \

@@ -22,6 +22,12 @@ locals {
     chpasswd:
       expire: false
     package_update: false
+    apt:
+      sources_list: |
+        # Disabled by ARCHIVIRT IaC — local mirror only
+      conf: |
+        Acquire::AllowInsecureRepositories "true";
+        Acquire::AllowDowngradeToInsecureRepositories "true";
   EOF
 }
 
@@ -37,7 +43,7 @@ resource "libvirt_cloudinit_disk" "manager" {
     hostname: archivirt-manager
     ${local.cloud_init_common}
     runcmd:
-      - wget -q "http://10.0.5.1:8080/install_manager.sh" -O /tmp/install.sh && bash /tmp/install.sh
+      - until wget -q "http://10.0.5.1:8080/install_manager.sh" -O /tmp/install.sh; do echo "Waiting for mirror..."; sleep 10; done && bash /tmp/install.sh
   EOF
   network_config = <<-EOF
     version: 2
@@ -97,7 +103,7 @@ resource "libvirt_cloudinit_disk" "attacker" {
     hostname: archivirt-attacker
     ${local.cloud_init_common}
     runcmd:
-      - wget -q "http://10.0.4.1:8080/install_attacker.sh" -O /tmp/install.sh && bash /tmp/install.sh
+      - until wget -q "http://10.0.4.1:8080/install_attacker.sh" -O /tmp/install.sh; do echo "Waiting for mirror..."; sleep 10; done && bash /tmp/install.sh
   EOF
   network_config = <<-EOF
     version: 2
@@ -241,7 +247,7 @@ resource "libvirt_cloudinit_disk" "target" {
     hostname: ${each.value.hostname}
     ${local.cloud_init_common}
     runcmd:
-      - wget -q "http://10.0.2.1:8080/install_targets.sh" -O /tmp/install.sh && bash /tmp/install.sh
+      - until wget -q "http://10.0.2.1:8080/install_targets.sh" -O /tmp/install.sh; do echo "Waiting for mirror..."; sleep 10; done && bash /tmp/install.sh
   EOF
   # Static IP + dhcp-identifier:mac ensures consistent libvirt DHCP lease binding by MAC address
   network_config = <<-EOF
