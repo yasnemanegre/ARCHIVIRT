@@ -159,7 +159,7 @@ resource "libvirt_cloudinit_disk" "monitor" {
     hostname: archivirt-monitor-ids
     ${local.cloud_init_common}
     runcmd:
-      - wget -q "http://10.0.3.1:8080/install_monitor.sh" -O /tmp/install.sh && bash /tmp/install.sh
+      - until wget -q "http://10.0.3.1:8080/install_monitor.sh" -O /tmp/install.sh; do echo "Waiting for mirror..."; sleep 10; done && bash /tmp/install.sh
   EOF
   network_config = <<-EOF
     version: 2
