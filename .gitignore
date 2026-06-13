@@ -18,6 +18,8 @@ build/
 # Results & outputs (generated data)
 *.json
 !monitoring/grafana/dashboard.json
+!results/*.json
+!results/campaigns/*.json
 reports/
 *.html
 *.pcap
