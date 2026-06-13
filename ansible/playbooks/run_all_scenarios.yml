@@ -47,6 +47,24 @@
         state: directory
         mode: '0755'
 
+    - name: Ensure /etc/snort3 exists
+      ansible.builtin.file:
+        path: /etc/snort3
+        state: directory
+        mode: '0755'
+
+    - name: Ensure /etc/snort3/rules exists
+      ansible.builtin.file:
+        path: /etc/snort3/rules
+        state: directory
+        mode: '0755'
+
+    - name: Ensure archivirt.rules exists
+      ansible.builtin.file:
+        path: /etc/snort3/rules/archivirt.rules
+        state: touch
+        mode: '0644'"""
+
     - name: Ensure /var/log/snort exists
       ansible.builtin.file:
         path: /var/log/snort
