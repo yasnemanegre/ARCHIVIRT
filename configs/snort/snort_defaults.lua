@@ -1,0 +1,30 @@
+-- ARCHIVIRT - Snort 3 defaults
+-- Based on Snort 3.1.74.0 official defaults
+
+HOME_NET = HOME_NET or '[[0.0.0.0/0]]'
+EXTERNAL_NET = EXTERNAL_NET or 'any'
+
+DNS_SERVERS = HOME_NET
+SMTP_SERVERS = HOME_NET
+HTTP_SERVERS = HOME_NET
+SQL_SERVERS = HOME_NET
+TELNET_SERVERS = HOME_NET
+SSH_SERVERS = HOME_NET
+FTP_SERVERS = HOME_NET
+SIP_SERVERS = HOME_NET
+
+HTTP_PORTS = '80'
+SHELLCODE_PORTS = '!80'
+ORACLE_PORTS = '1521'
+SSH_PORTS = '22'
+FTP_PORTS = '21 2100 3535'
+SIP_PORTS = '5060 5061 5600'
+MAIL_PORTS = '110 143'
+
+-- Path variables
+RULE_PATH = '/etc/snort3/rules'
+BUILTIN_RULE_PATH = '/etc/snort3/rules'
+PLUGIN_RULE_PATH = '/etc/snort3/rules'
+
+WHITE_LIST_PATH = '/etc/snort3/rules'
+BLACK_LIST_PATH = '/etc/snort3/rules'

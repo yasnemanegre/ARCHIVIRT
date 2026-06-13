@@ -18,7 +18,7 @@ ACTION=$1
 SCENARIO=${2:-default}
 MODE=${3:-ids}
 
-LOG_DIR=/var/log/snort3/${SCENARIO}
+LOG_DIR=/var/log/snort33/${SCENARIO}
 PID_FILE=${LOG_DIR}/snort.pid
 CONFIG=/etc/snort3/snort.lua
 IFACE=ens4
@@ -43,10 +43,12 @@ case $ACTION in
         echo "[ARCHIVIRT] Starting Snort 3 IDS (iface=$IFACE) for $SCENARIO ..."
 
         # Run in background with & (no -D flag to avoid parent process exit)
+        PLUGIN_OPT=""
+        [ -d "$PLUGIN_PATH" ] && PLUGIN_OPT="--plugin-path $PLUGIN_PATH"
         ${SNORT_BIN} \
           -i "$IFACE" \
           -c "$CONFIG" \
-          --plugin-path "$PLUGIN_PATH" \
+          $PLUGIN_OPT \
           -l "$LOG_DIR" \
           >> "${LOG_DIR}/snort_stdout.log" 2>&1 &
 
