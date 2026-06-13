@@ -65,6 +65,16 @@
         state: touch
         mode: '0644'
 
+    - name: Ensure Snort3 runtime dependencies are installed
+      ansible.builtin.apt:
+        name:
+          - libdumbnet1
+          - libhwloc15
+          - libpciaccess0
+        state: present
+        update_cache: no
+      ignore_errors: yes
+
     - name: Ensure /var/log/snort exists
       ansible.builtin.file:
         path: /var/log/snort
