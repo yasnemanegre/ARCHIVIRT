@@ -63,7 +63,7 @@
       ansible.builtin.file:
         path: /etc/snort3/rules/archivirt.rules
         state: touch
-        mode: '0644'"""
+        mode: '0644'
 
     - name: Ensure /var/log/snort exists
       ansible.builtin.file:
