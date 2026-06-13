@@ -18,7 +18,7 @@ ACTION=$1
 SCENARIO=${2:-default}
 MODE=${3:-ids}
 
-LOG_DIR=/var/log/snort33/${SCENARIO}
+LOG_DIR=/var/log/snort3/${SCENARIO}
 PID_FILE=${LOG_DIR}/snort.pid
 CONFIG=/etc/snort3/snort.lua
 IFACE=ens4
