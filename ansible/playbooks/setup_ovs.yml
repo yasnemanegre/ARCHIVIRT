@@ -91,6 +91,7 @@
           ip link set {{ bridge.name }} up
           ip addr replace {{ bridge.ip }} dev {{ bridge.name }} || true
           {% endfor %}
+          ip route add 10.0.5.0/24 dev virbr1 src 10.0.5.1 2>/dev/null || true
           echo "ARCHIVIRT: OVS bridge IPs restored"
 
     - name: Install archivirt-ovs-ip systemd service
