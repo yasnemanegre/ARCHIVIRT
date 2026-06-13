@@ -69,8 +69,8 @@ case $ACTION in
                 exit 1
             fi
 
-            # Check for ready message
-            if grep -q "$READY_MSG" "${LOG_DIR}/snort_stdout.log" 2>/dev/null; then
+            # Check for ready: PID file exists + alert files created
+            if [ -f "${LOG_DIR}/alert_fast.txt" ] && [ -f "${LOG_DIR}/snort.pid" ]; then
                 echo "[ARCHIVIRT] Snort ready after ${WAITED}s — PID=$SNORT_PID logs=$LOG_DIR"
                 exit 0
             fi
