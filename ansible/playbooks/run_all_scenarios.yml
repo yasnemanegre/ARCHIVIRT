@@ -70,9 +70,11 @@
         name:
           - libdumbnet1
           - libhwloc15
-          - libpciaccess0
+          - libdaq2
+          - libhyperscan5
         state: present
         update_cache: no
+        install_recommends: no
       ignore_errors: yes
 
     - name: Ensure /var/log/snort exists
