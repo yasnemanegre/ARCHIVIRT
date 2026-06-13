@@ -67,6 +67,12 @@
         dest: "{{ snort_script }}"
         mode: "0755"
 
+    - name: Ensure /usr/local/etc/snort exists
+      file:
+        path: /usr/local/etc/snort
+        state: directory
+        mode: '0755'
+
     - name: Deploy snort_defaults.lua
       copy:
         src:  /home/archivirt/ARCHIVIRT/configs/snort/snort_defaults.lua
@@ -74,11 +80,6 @@
         owner: root
         mode: '0644'
 
-    - name: Ensure /usr/local/etc/snort exists
-      file:
-        path: /usr/local/etc/snort
-        state: directory
-        mode: '0755'
 
     - name: Deploy Snort configuration (UTC timestamps enforced)
       template:

@@ -34,6 +34,19 @@
   hosts: archivirt-monitor-ids
   become: yes
   tasks:
+    - name: Wait for cloud-init to complete (install_monitor.sh)
+      ansible.builtin.wait_for:
+        path: /usr/local/bin/snort
+        state: present
+        timeout: 600
+        msg: "Timeout waiting for Snort installation via cloud-init"
+
+    - name: Ensure /usr/local/etc/snort exists
+      ansible.builtin.file:
+        path: /usr/local/etc/snort
+        state: directory
+        mode: '0755'
+
     - name: Ensure /var/log/snort exists
       ansible.builtin.file:
         path: /var/log/snort
