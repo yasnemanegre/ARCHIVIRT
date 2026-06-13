@@ -308,4 +308,3 @@
         \( -name "*.bak*" -o -name "*_old.*" -o -name "*.pyc" -o -type d -name "__pycache__" \)
         | xargs rm -rf
       args:
-        warn: false
