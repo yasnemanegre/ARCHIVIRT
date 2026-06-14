@@ -128,3 +128,20 @@ Sawadogo, Y. ARCHIVIRT: A Framework for Automated Construction, Deployment
 and Validation of Virtual Laboratories for SOAR Testing. SPbGUPTD, 2026.
 
 https://github.com/yasnemanegre/ARCHIVIRT
+
+---
+
+## Secrets Management
+
+Credentials are managed via Ansible Vault — never committed to the repo.
+
+```bash
+# Create secrets file (first time)
+cp ansible/vars/secrets.yml.example ansible/vars/secrets.yml
+ansible-vault encrypt ansible/vars/secrets.yml
+
+# Run playbooks with vault
+ansible-playbook ansible/playbooks/setup_influxdb.yml \
+  -i ansible/inventory/hosts.ini \
+  --ask-vault-pass
+```
