@@ -55,3 +55,17 @@
 | 4     | 2026-06-14 | ✅ Zero manual intervention  |
 
 Full JSON: `results/archivirt_final_comparison.json`
+
+## Monitoring Stack Status
+
+| Component | Status | Endpoint |
+|-----------|--------|----------|
+| Telegraf  | ✅ active | monitor-ids → 10.0.3.254:8086 |
+| InfluxDB  | ✅ active | http://10.0.5.10:8086 |
+| Grafana   | ✅ active | http://10.0.5.10:3000 |
+
+> Access: `ssh -L 3000:10.0.5.10:3000 archivirt@<tailscale-ip>`
+> Login: admin / archivirt
+>
+> ⚠ Table 3 (CPU/RAM/Mbps) still from static `performance_baseline.json`.
+> Dynamic Table 3 via Telegraf planned for v4.2.

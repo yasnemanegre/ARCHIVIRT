@@ -142,3 +142,26 @@
 - [ ] Multi-node cluster support (AWS/Azure/GCP)
 - [ ] CALDERA integration for advanced attack scenarios
 - [ ] Windows target VMs (Metasploitable3)
+
+---
+## [v4.1] — 2026-06-14 — Monitoring Stack
+
+### Added
+- Telegraf 1.29.5 deployed on monitor-ids via `deploy_telegraf.yml`
+- InfluxDB v2 initialized via HTTP API in `setup_influxdb.yml` (no CLI required)
+- Grafana datasource + dashboard auto-imported in `archivirt-reset.sh`
+- Manager VM gets secondary interface `ens4` on `ovs-monitor` (10.0.3.254/24)
+  → Telegraf → InfluxDB direct path without cross-subnet routing (Option A)
+- `archivirt-reset.sh` updated with full monitoring stack setup
+- Grafana accessible via SSH tunnel: `ssh -L 3000:10.0.5.10:3000 archivirt@<tailscale-ip>`
+
+### Fixed
+- `telegraf-monitor.conf`: bucket `archivirt-metrics` → `archivirt`
+- `telegraf-monitor.conf`: ips_metrics.json exec command quotes fixed
+- `deploy_telegraf.yml`: v2.0 — uses apt mirror package, telegraf-monitor.conf
+- Grafana default password reset via `grafana-cli`
+
+### Validated
+- Telegraf → InfluxDB: `archivirt_snort_alerts` + `archivirt_suricata_alerts` every 10s
+- Grafana dashboard: ARCHIVIRT — IDS/IPS Testing Dashboard imported
+- Full pipeline: `archivirt-reset.sh` includes monitoring stack auto-setup
