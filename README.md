@@ -121,7 +121,7 @@ Level 5 — Data/Metrics    : Logs, PCAP, JSON reports
 | 3     | 2026-06-13 | ✅ Zero manual intervention |
 | 4     | 2026-06-14 | ✅ Zero manual intervention |
 
-Persistent systemd services on host:
+Persistent systemd services on host (validated after full host reboot 2026-06-14):
 - `archivirt-ovs-ip.service` — restores OVS bridge IPs at boot
 - `archivirt-ovs-dhcp.service` — starts dnsmasq DHCP at boot
 
