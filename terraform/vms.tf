@@ -51,6 +51,8 @@ resource "libvirt_cloudinit_disk" "manager" {
       ens3:
         addresses: [${var.ip_manager}/24]
         gateway4: 10.0.5.1
+      ens4:
+        addresses: [10.0.3.254/24]
   EOF
 }
 
@@ -71,6 +73,11 @@ resource "libvirt_domain" "manager" {
   network_interface {
     network_id = libvirt_network.manager.id
     addresses  = [var.ip_manager]
+  }
+  # Secondary interface on ovs-monitor for Telegraf → InfluxDB
+  network_interface {
+    network_id = libvirt_network.monitor.id
+    addresses  = ["10.0.3.254"]
   }
 
   disk {
