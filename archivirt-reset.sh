@@ -12,3 +12,25 @@ sleep 90
 ansible-playbook ansible/playbooks/run_all_scenarios.yml \
   -i ansible/inventory/hosts.ini \
   --ssh-extra-args="-o StrictHostKeyChecking=no"
+
+# Setup monitoring stack
+ansible-playbook ansible/playbooks/setup_influxdb.yml \
+  -i ansible/inventory/hosts.ini
+ansible-playbook ansible/playbooks/deploy_telegraf.yml \
+  -i ansible/inventory/hosts.ini
+
+# Import Grafana dashboard
+DASHBOARD=$(cat monitoring/grafana/dashboard.json)
+ssh ubuntu@10.0.5.10 "curl -s -X POST \
+  -H 'Content-Type: application/json' \
+  -u admin:archivirt \
+  http://localhost:3000/api/datasources \
+  -d '{\"name\":\"InfluxDB-ARCHIVIRT\",\"type\":\"influxdb\",\"url\":\"http://localhost:8086\",\"access\":\"proxy\",\"jsonData\":{\"version\":\"Flux\",\"organization\":\"archivirt\",\"defaultBucket\":\"archivirt\"},\"secureJsonData\":{\"token\":\"archivirt-telegraf-token\"}}' 2>/dev/null || true"
+
+ssh ubuntu@10.0.5.10 "curl -s -X POST \
+  -H 'Content-Type: application/json' \
+  -u admin:archivirt \
+  http://localhost:3000/api/dashboards/import \
+  -d '{\"dashboard\": $DASHBOARD, \"overwrite\": true, \"folderId\": 0}' 2>/dev/null"
+
+echo '✅ Monitoring stack ready — Grafana: http://10.0.5.10:3000 (admin/archivirt)'
