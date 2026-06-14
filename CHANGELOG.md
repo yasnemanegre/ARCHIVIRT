@@ -128,3 +128,17 @@
 4. Lancer campagnes IPS (ids_mode=ips)
 5. Tableau 5 IDS vs IPS dans l article
 6. Mise a jour article + push final GitHub
+
+---
+## [Roadmap — v4.1]
+
+### Planned
+- [ ] InfluxDB + Grafana + Telegraf configuration on manager VM (10.0.5.10)
+      → CPU/RAM/Mbps metrics currently from static `performance_baseline.json`
+      → Target: live metrics updated automatically each campaign run
+- [ ] `calibrate_performance.yml` integrated into `run_all_scenarios.yml`
+      → Table 3 currently frozen — needs dynamic update per campaign
+- [ ] IPS mode validation (Snort + Suricata inline blocking)
+- [ ] Multi-node cluster support (AWS/Azure/GCP)
+- [ ] CALDERA integration for advanced attack scenarios
+- [ ] Windows target VMs (Metasploitable3)
