@@ -3,7 +3,7 @@
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 
 - name: Measure latency
-  hosts: attacker
+  hosts: archivirt-attacker
   become: yes
   tasks:
     - name: Ping target-01
@@ -13,7 +13,7 @@
         latency_ms: "{{ ping_result.stdout | float }}"
 
 - name: Snort3 CPU/RAM under load
-  hosts: monitor
+  hosts: archivirt-monitor-ids
   become: yes
   vars:
     snort_script: /opt/archivirt/scripts/run_snort.sh
@@ -52,7 +52,7 @@
       ignore_errors: yes
 
 - name: Suricata CPU/RAM under load
-  hosts: monitor
+  hosts: archivirt-monitor-ids
   become: yes
   vars:
     suricata_script: /opt/archivirt/scripts/run_suricata.sh

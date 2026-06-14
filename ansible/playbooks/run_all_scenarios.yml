@@ -178,6 +178,11 @@
 # METRICS — Build detection efficiency metrics (DR, FPR, latency)
 # -----------------------------------------------------------------------------
 
+# METRICS — Calibrate performance (CPU/RAM/Mbps) under real load
+# -----------------------------------------------------------------------------
+- name: ARCHIVIRT - Calibrate performance metrics
+  import_playbook: calibrate_performance.yml
+
 - name: ARCHIVIRT - Build final results (metrics + assembly)
   hosts: localhost
   connection: local
