@@ -1,46 +1,75 @@
----
-- name: Deploy Telegraf on all VMs except manager (offline)
-  hosts: all:!manager
+# =============================================================================
+# ARCHIVIRT — Deploy Telegraf on monitor-ids VM
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 2.0.0 — 2026-06-14
+#
+# Deploys Telegraf on monitor-ids VM for real-time metrics:
+#   - CPU, RAM, network (Mbps)
+#   - Snort + Suricata process stats
+#   - Alert counters per scenario
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/deploy_telegraf.yml \
+#     -i ansible/inventory/hosts.ini
+#
+# Prerequisites: setup_influxdb.yml must have run first
+# =============================================================================
+- name: ARCHIVIRT - Deploy Telegraf on monitor-ids
+  hosts: archivirt-monitor-ids
   become: yes
+
   tasks:
-    - name: Copy Telegraf .deb package
+    - name: Copy Telegraf package from local mirror
       copy:
-        src: /home/archivirt/ARCHIVIRT/packages/telegraf_1.28.1-1_amd64.deb
+        src: /var/spool/apt-mirror/packages/telegraf_1.29.5_amd64.deb
         dest: /tmp/telegraf.deb
+        mode: '0644'
 
     - name: Install Telegraf from local package
       apt:
         deb: /tmp/telegraf.deb
         state: present
 
-    - name: Configure Telegraf for InfluxDB v2
+    - name: Deploy Telegraf configuration
       copy:
-        content: |
-          [agent]
-            interval = "10s"
-            round_interval = true
-
-          [[outputs.influxdb_v2]]
-            urls = ["http://10.0.5.10:8086"]
-            token = "archivirt-telegraf-token"
-            organization = "archivirt"
-            bucket = "archivirt"
-
-          [[inputs.cpu]]
-            percpu = false
-            totalcpu = true
-            fieldpass = ["usage_user", "usage_system"]
-          [[inputs.mem]]
-          [[inputs.net]]
-          [[inputs.disk]]
-          [[inputs.system]]
+        src: /home/archivirt/ARCHIVIRT/monitoring/telegraf-monitor.conf
         dest: /etc/telegraf/telegraf.conf
         owner: root
         group: root
-        mode: 0644
+        mode: '0644'
+
+    - name: Add telegraf user to required groups
+      user:
+        name: telegraf
+        groups: adm
+        append: yes
 
     - name: Restart and enable Telegraf
       systemd:
         name: telegraf
         state: restarted
         enabled: yes
+        daemon_reload: yes
+
+    - name: Wait for Telegraf to start
+      pause:
+        seconds: 5
+
+    - name: Verify Telegraf is running
+      systemd:
+        name: telegraf
+      register: telegraf_status
+
+    - name: Show Telegraf status
+      debug:
+        msg: "Telegraf: {{ telegraf_status.status.ActiveState }}"
+
+    - name: Summary
+      debug:
+        msg:
+          - "✅ Telegraf deployed on monitor-ids"
+          - "   Sending metrics to InfluxDB: http://10.0.5.10:8086"
+          - "   Bucket: archivirt | Org: archivirt"
+          - "   Interval: 10s"

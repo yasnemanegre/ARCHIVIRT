@@ -1,0 +1,89 @@
+# =============================================================================
+# ARCHIVIRT — InfluxDB v2 Setup on Manager VM (via HTTP API)
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 1.1.0 — 2026-06-14
+# =============================================================================
+- name: ARCHIVIRT - Initialize InfluxDB v2 on manager
+  hosts: archivirt-manager
+  become: yes
+  vars:
+    influx_org: archivirt
+    influx_bucket: archivirt
+    influx_token: archivirt-telegraf-token
+    influx_user: admin
+    influx_password: archivirt123
+    influx_url: http://localhost:8086
+
+  tasks:
+    - name: Ensure InfluxDB is running
+      systemd:
+        name: influxdb
+        state: started
+        enabled: yes
+
+    - name: Wait for InfluxDB to be ready
+      wait_for:
+        port: 8086
+        timeout: 30
+
+    - name: Check if InfluxDB is already configured
+      uri:
+        url: "{{ influx_url }}/api/v2/setup"
+        method: GET
+        status_code: [200, 422]
+        return_content: yes
+      register: setup_check
+      changed_when: false
+
+    - name: Initialize InfluxDB via API (first time only)
+      uri:
+        url: "{{ influx_url }}/api/v2/setup"
+        method: POST
+        body_format: json
+        body:
+          username: "{{ influx_user }}"
+          password: "{{ influx_password }}"
+          org: "{{ influx_org }}"
+          bucket: "{{ influx_bucket }}"
+          token: "{{ influx_token }}"
+          retentionPeriodSeconds: 0
+        status_code: 201
+        return_content: yes
+      when: "'allowed' in setup_check.content"
+      register: influx_setup
+
+    - name: Show setup result
+      debug:
+        msg: "{{ 'InfluxDB initialized' if influx_setup is changed else 'InfluxDB already configured' }}"
+
+    - name: Verify InfluxDB is accepting requests
+      uri:
+        url: "{{ influx_url }}/api/v2/buckets"
+        method: GET
+        headers:
+          Authorization: "Token {{ influx_token }}"
+        status_code: 200
+        return_content: yes
+      register: buckets
+      changed_when: false
+
+    - name: Show buckets
+      debug:
+        msg: "Buckets found: {{ (buckets.json.buckets | map(attribute='name') | list) }}"
+
+    - name: Ensure Grafana is running
+      systemd:
+        name: grafana-server
+        state: started
+        enabled: yes
+
+    - name: Summary
+      debug:
+        msg:
+          - "✅ InfluxDB ready — http://10.0.5.10:8086"
+          - "   org: {{ influx_org }} | bucket: {{ influx_bucket }}"
+          - "   token: {{ influx_token }}"
+          - "✅ Grafana ready — http://10.0.5.10:3000 (admin/archivirt)"
+          - "   SSH tunnel: ssh -L 3000:10.0.5.10:3000 archivirt@192.168.4.10"
