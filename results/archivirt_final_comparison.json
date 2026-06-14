@@ -97,15 +97,15 @@
       {
         "ids": "Snort 3.1.74.0",
         "total_alerts": 157549,
-        "cpu": 1.6,
-        "ram": 41,
+        "cpu": 6.8,
+        "ram": 56,
         "mbit": 945
       },
       {
         "ids": "Suricata 6.0.4",
         "total_alerts": 2534,
-        "cpu": 7.7,
-        "ram": 46,
+        "cpu": 16.0,
+        "ram": 40,
         "mbit": 1120
       }
     ]
