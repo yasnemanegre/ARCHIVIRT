@@ -22,8 +22,8 @@
 
 | IDS            | Total Alerts | CPU%  | RAM MB | Mbps  |
 |----------------|--------------|-------|--------|-------|
-| Snort 3.1.74.0 | 157 549      | 1.6   | 41     | 945   |
-| Suricata 6.0.4 | 2 534        | 7.7   | 46     | 1 120 |
+| Snort 3.1.74.0 | 157 549      | 6.8   | 56     | 945   |
+| Suricata 6.0.4 | 2 534        | 16.0  | 40     | 1 120 |
 
 > ⚠ CPU/RAM/Mbps from `performance_baseline.json` (static).
 > Dynamic metrics via Telegraf + InfluxDB + Grafana planned for v4.1.
