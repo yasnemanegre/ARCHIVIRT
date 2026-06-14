@@ -14,7 +14,6 @@ __pycache__/
 venv/
 dist/
 build/
-
 # Results & outputs (generated data)
 *.json
 !monitoring/grafana/dashboard.json
@@ -24,39 +23,32 @@ reports/
 *.html
 *.pcap
 *.csv
-
 # SSH Keys
 *.pem
 *.key
 *_key
 *_key.pub
 !configs/
-
 # Logs
 logs/
 *.log
-
 # OS
 .DS_Store
 Thumbs.db
-
 # Editor
 .vscode/
 .idea/
 *.swp
 *.swo
-
 # Ansible retry files
 ansible/*.retry
 suricata_eve_*.json
 packages/
 *.bak.*
-
 # Terraform state — environment-specific, never commit
-terraform/terraform.tfstate
-terraform/terraform.tfstate.backup
-terraform/.terraform/
 *.deb
 *.run
 *.tfvars
 *.bak
+ansible/vars/secrets.yml
+terraform/terraform.tfvars
