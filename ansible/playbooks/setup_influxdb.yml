@@ -8,14 +8,12 @@
 - name: ARCHIVIRT - Initialize InfluxDB v2 on manager
   hosts: archivirt-manager
   become: yes
-  vars_files:
-    - ../vars/secrets.yml
   vars:
     influx_org: archivirt
     influx_bucket: archivirt
-    influx_token: "{{ vault_influx_token }}"
+    influx_token: archivirt-telegraf-token
     influx_user: admin
-    influx_password: "{{ vault_influx_password }}"
+    influx_password: archivirt123
     influx_url: http://localhost:8086
 
   tasks:
