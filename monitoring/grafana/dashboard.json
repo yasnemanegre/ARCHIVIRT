@@ -47,7 +47,7 @@
       "type": "stat",
       "targets": [
         {
-          "query": "from(bucket: \"archivirt-metrics\") |> range(start: -5m) |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\" and r[\"_field\"] == \"usage_user\" and r[\"host\"] == \"archivirt-monitor-ids\") |> last()",
+          "query": "from(bucket: \"archivirt\") |> range(start: -5m) |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\" and r[\"_field\"] == \"usage_user\" and r[\"host\"] == \"archivirt-monitor-ids\") |> last()",
           "refId": "A"
         }
       ]
@@ -75,7 +75,7 @@
       "type": "stat",
       "targets": [
         {
-          "query": "from(bucket: \"archivirt-metrics\") |> range(start: -5m) |> filter(fn: (r) => r[\"_measurement\"] == \"mem\" and r[\"_field\"] == \"used\" and r[\"host\"] == \"archivirt-monitor-ids\") |> map(fn: (r) => ({r with _value: r._value / 1048576})) |> last()",
+          "query": "from(bucket: \"archivirt\") |> range(start: -5m) |> filter(fn: (r) => r[\"_measurement\"] == \"mem\" and r[\"_field\"] == \"used\" and r[\"host\"] == \"archivirt-monitor-ids\") |> map(fn: (r) => ({r with _value: r._value / 1048576})) |> last()",
           "refId": "A"
         }
       ]
@@ -90,7 +90,7 @@
       "type": "stat",
       "targets": [
         {
-          "query": "from(bucket: \"archivirt-metrics\") |> range(start: -1h) |> filter(fn: (r) => r[\"_measurement\"] == \"archivirt_suricata_alerts\") |> last()",
+          "query": "from(bucket: \"archivirt\") |> range(start: -1h) |> filter(fn: (r) => r[\"_measurement\"] == \"archivirt_suricata_alerts\") |> last()",
           "refId": "A"
         }
       ]
@@ -105,7 +105,7 @@
       "type": "stat",
       "targets": [
         {
-          "query": "from(bucket: \"archivirt-metrics\") |> range(start: -1h) |> filter(fn: (r) => r[\"_measurement\"] == \"archivirt_snort_alerts\") |> last()",
+          "query": "from(bucket: \"archivirt\") |> range(start: -1h) |> filter(fn: (r) => r[\"_measurement\"] == \"archivirt_snort_alerts\") |> last()",
           "refId": "A"
         }
       ]
@@ -120,7 +120,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "query": "from(bucket: \"archivirt-metrics\") |> range(start: -30m) |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\" and r[\"_field\"] == \"usage_user\" and r[\"cpu\"] == \"cpu-total\") |> aggregateWindow(every: 10s, fn: mean)",
+          "query": "from(bucket: \"archivirt\") |> range(start: -30m) |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\" and r[\"_field\"] == \"usage_user\" and r[\"cpu\"] == \"cpu-total\") |> aggregateWindow(every: 10s, fn: mean)",
           "refId": "A"
         }
       ]
@@ -134,7 +134,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "query": "from(bucket: \"archivirt-metrics\") |> range(start: -1h) |> filter(fn: (r) => r[\"_measurement\"] == \"archivirt_suricata_alerts\" or r[\"_measurement\"] == \"archivirt_snort_alerts\") |> aggregateWindow(every: 30s, fn: last)",
+          "query": "from(bucket: \"archivirt\") |> range(start: -1h) |> filter(fn: (r) => r[\"_measurement\"] == \"archivirt_suricata_alerts\" or r[\"_measurement\"] == \"archivirt_snort_alerts\") |> aggregateWindow(every: 30s, fn: last)",
           "refId": "A"
         }
       ]
