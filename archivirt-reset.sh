@@ -29,7 +29,7 @@ ssh ubuntu@10.0.5.10 "curl -s -X POST \
   -H 'Content-Type: application/json' \
   -u admin:${GRAFANA_PASSWORD:-archivirt} \
   http://localhost:3000/api/datasources \
-  -d '{\"name\":\"InfluxDB-ARCHIVIRT\",\"type\":\"influxdb\",\"url\":\"http://localhost:8086\",\"access\":\"proxy\",\"jsonData\":{\"version\":\"Flux\",\"organization\":\"archivirt\",\"defaultBucket\":\"archivirt\"},\"secureJsonData\":{\"token\":\"archivirt-telegraf-token\"}}' 2>/dev/null || true"
+  -d '{\"name\":\"InfluxDB-ARCHIVIRT\",\"type\":\"influxdb\",\"uid\":\"archivirt-influx\",\"url\":\"http://localhost:8086\",\"access\":\"proxy\",\"jsonData\":{\"version\":\"Flux\",\"organization\":\"archivirt\",\"defaultBucket\":\"archivirt\"},\"secureJsonData\":{\"token\":\"archivirt-telegraf-token\"}}' 2>/dev/null || true"
 
 ssh ubuntu@10.0.5.10 "curl -s -X POST \
   -H 'Content-Type: application/json' \
