@@ -26,8 +26,21 @@
           "timeout 30 nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null" &
       async: 40
       poll: 0
+    - name: Measure network throughput (rx+tx delta over 5s)
+      shell: |
+        IFACE=$(ip route get 10.0.2.11 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
+        [ -z "$IFACE" ] && IFACE="ens3"
+        r1=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t1=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
+        sleep 5
+        r2=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t2=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
+        mbps=$(awk -v r1=$r1 -v r2=$r2 -v t1=$t1 -v t2=$t2 'BEGIN{printf "%.1f", (((r2-r1)+(t2-t1))*8)/5/1000000}')
+        echo "{\"throughput_mbps\":$mbps}"
+      register: snort_net_parsed
+    - name: Set Snort throughput fact
+      set_fact:
+        snort_throughput: "{{ (snort_net_parsed.stdout | from_json).throughput_mbps | float }}"
     - name: Wait load
-      wait_for: timeout=12
+      wait_for: timeout=7
     - name: Measure CPU/RAM and compute MB
       shell: |
         PID=$(cat /var/log/snort3/CALIB/snort.pid 2>/dev/null)
@@ -65,8 +78,21 @@
           "timeout 30 nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null" &
       async: 40
       poll: 0
+    - name: Measure network throughput (rx+tx delta over 5s)
+      shell: |
+        IFACE=$(ip route get 10.0.2.11 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
+        [ -z "$IFACE" ] && IFACE="ens3"
+        r1=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t1=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
+        sleep 5
+        r2=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t2=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
+        mbps=$(awk -v r1=$r1 -v r2=$r2 -v t1=$t1 -v t2=$t2 'BEGIN{printf "%.1f", (((r2-r1)+(t2-t1))*8)/5/1000000}')
+        echo "{\"throughput_mbps\":$mbps}"
+      register: suricata_net_parsed
+    - name: Set Suricata throughput fact
+      set_fact:
+        suricata_throughput: "{{ (suricata_net_parsed.stdout | from_json).throughput_mbps | float }}"
     - name: Wait load
-      wait_for: timeout=12
+      wait_for: timeout=7
     - name: Measure CPU/RAM and compute MB
       shell: |
         PID=$(cat /var/log/suricata/CALIB/suricata.pid 2>/dev/null)
@@ -102,9 +128,9 @@
             "latency_ms": {{ hostvars['archivirt-attacker']['latency_ms'] | default(1.8) }},
             "snort_cpu": {{ hostvars['archivirt-monitor-ids']['snort_cpu'] | default(68.2) }},
             "snort_ram": {{ hostvars['archivirt-monitor-ids']['snort_ram'] | default(512) }},
-            "snort_throughput": 945,
+            "snort_throughput": {{ hostvars['archivirt-monitor-ids']['snort_throughput'] | default(945) }},
             "suricata_cpu": {{ hostvars['archivirt-monitor-ids']['suricata_cpu'] | default(75.4) }},
             "suricata_ram": {{ hostvars['archivirt-monitor-ids']['suricata_ram'] | default(610) }},
-            "suricata_throughput": 1120
+            "suricata_throughput": {{ hostvars['archivirt-monitor-ids']['suricata_throughput'] | default(1120) }}
           }
         dest: /home/archivirt/ARCHIVIRT/results/performance_baseline.json
