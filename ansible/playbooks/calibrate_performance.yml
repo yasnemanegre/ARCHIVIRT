@@ -1,6 +1,20 @@
----
-# ARCHIVIRT - Performance calibration (RAM calc in shell)
-# Author: Yasnemanegre SAWADOGO (SPbGUPTD)
+# =============================================================================
+# ARCHIVIRT - Performance calibration (CPU/RAM/Mbps under synchronized load)
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 2.1.0 — 2026-06-21
+#
+# Measures Table 3 metrics (CPU%, RAM MB, Mbps) under a SINGLE synchronized
+# load window per IDS engine. Attack traffic (repeated SCN-001 scans) is
+# launched directly from the Ansible controller onto archivirt-attacker via
+# native async (no inter-VM SSH needed — monitor-ids has no key to attacker).
+# CPU/RAM/network are sampled in parallel on archivirt-monitor-ids over the
+# same time window, guaranteeing causally consistent metrics.
+#
+# Usage: ansible-playbook ansible/playbooks/calibrate_performance.yml \
+#          -i ansible/inventory/hosts.ini
+# =============================================================================
 
 - name: Measure latency
   hosts: archivirt-attacker
@@ -12,106 +26,138 @@
     - set_fact:
         latency_ms: "{{ ping_result.stdout | float }}"
 
-- name: Snort3 CPU/RAM under load
+- name: Snort3 CPU/RAM/Mbps under synchronized load
   hosts: archivirt-monitor-ids
   become: yes
   vars:
     snort_script: /opt/archivirt/scripts/run_snort.sh
+    load_duration: 15
   tasks:
+    - name: Ensure OVS port mirror is active (ens4 captures traffic)
+      shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
+      delegate_to: localhost
+      become: no
+
     - name: Start Snort3
       shell: "bash {{ snort_script }} start CALIB"
-    - name: Run SCN-001 from attacker (async)
+
+    - name: Launch repeated SCN-001 load on attacker (Ansible native async)
       shell: |
-        ssh -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no ubuntu@10.0.4.10 \
-          "timeout 30 nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null" &
-      async: 40
-      poll: 0
-    - name: Measure network throughput (rx+tx delta over 5s)
-      shell: |
-        IFACE=$(ip route get 10.0.2.11 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
-        [ -z "$IFACE" ] && IFACE="ens3"
-        r1=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t1=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
-        sleep 5
-        r2=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t2=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
-        mbps=$(awk -v r1=$r1 -v r2=$r2 -v t1=$t1 -v t2=$t2 'BEGIN{printf "%.1f", (((r2-r1)+(t2-t1))*8)/5/1000000}')
-        echo "{\"throughput_mbps\":$mbps}"
-      register: snort_net_parsed
-    - name: Set Snort throughput fact
-      set_fact:
-        snort_throughput: "{{ (snort_net_parsed.stdout | from_json).throughput_mbps | float }}"
-    - name: Wait load
-      wait_for: timeout=7
-    - name: Measure CPU/RAM and compute MB
-      shell: |
-        PID=$(cat /var/log/snort3/CALIB/snort.pid 2>/dev/null)
-        if [ -z "$PID" ]; then echo '{"snort_cpu":0,"snort_ram_mb":0}'; exit 0; fi
-        max_cpu=0; max_ram_kb=0
-        for i in 1 2 3 4 5; do
-          vals=$(ps -p $PID -o %cpu,rss --no-headers 2>/dev/null || echo "0 0")
-          cpu=$(echo $vals | awk '{print $1}') ; ram=$(echo $vals | awk '{print $2}')
-          if awk 'BEGIN{exit !('$cpu'>'$max_cpu')}'; then max_cpu=$cpu; fi
-          [ "$ram" -gt "$max_ram_kb" ] && max_ram_kb=$ram
-          sleep 3
+        for i in $(seq 1 {{ load_duration }}); do
+          nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
+          sleep 1
         done
+      async: "{{ load_duration + 15 }}"
+      poll: 0
+      delegate_to: archivirt-attacker
+      register: snort_load_job
+
+    - name: Sample CPU/RAM and network throughput simultaneously over load_duration
+      shell: |
+        IFACE="ens4"
+        PID=$(cat /var/log/snort3/CALIB/snort.pid 2>/dev/null)
+        r1=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t1=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
+        max_cpu=0; max_ram_kb=0
+        elapsed=0
+        while [ $elapsed -lt {{ load_duration }} ]; do
+          if [ -n "$PID" ]; then
+            vals=$(ps -p $PID -o %cpu,rss --no-headers 2>/dev/null || echo "0 0")
+            cpu=$(echo $vals | awk '{print $1}'); ram=$(echo $vals | awk '{print $2}')
+            if awk 'BEGIN{exit !('$cpu'>'$max_cpu')}'; then max_cpu=$cpu; fi
+            [ "$ram" -gt "$max_ram_kb" ] && max_ram_kb=$ram
+          fi
+          sleep 2
+          elapsed=$((elapsed + 2))
+        done
+        r2=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t2=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
         ram_mb=$((max_ram_kb / 1024))
-        echo "{\"snort_cpu\":$max_cpu,\"snort_ram_mb\":$ram_mb}"
+        mbps=$(awk -v r1=$r1 -v r2=$r2 -v t1=$t1 -v t2=$t2 -v d={{ load_duration }} 'BEGIN{printf "%.3f", (((r2-r1)+(t2-t1))*8)/d/1000000}')
+        echo "{\"snort_cpu\":$max_cpu,\"snort_ram_mb\":$ram_mb,\"snort_throughput\":$mbps}"
       register: snort_parsed
+
     - name: Set Snort facts
       set_fact:
         snort_cpu: "{{ (snort_parsed.stdout | from_json).snort_cpu | float }}"
         snort_ram: "{{ (snort_parsed.stdout | from_json).snort_ram_mb | int }}"
+        snort_throughput: "{{ (snort_parsed.stdout | from_json).snort_throughput | float }}"
+
+    - name: Cleanup async job on attacker
+      async_status:
+        jid: "{{ snort_load_job.ansible_job_id }}"
+      delegate_to: archivirt-attacker
+      register: job_result
+      until: job_result.finished
+      retries: 1
+      ignore_errors: yes
+
     - name: Stop Snort3
       shell: "bash {{ snort_script }} stop CALIB"
       ignore_errors: yes
 
-- name: Suricata CPU/RAM under load
+- name: Suricata CPU/RAM/Mbps under synchronized load
   hosts: archivirt-monitor-ids
   become: yes
   vars:
     suricata_script: /opt/archivirt/scripts/run_suricata.sh
+    load_duration: 15
   tasks:
+    - name: Ensure OVS port mirror is active (ens4 captures traffic)
+      shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
+      delegate_to: localhost
+      become: no
+
     - name: Start Suricata
       shell: "bash {{ suricata_script }} start CALIB"
-    - name: Run SCN-001 from attacker (async)
+
+    - name: Launch repeated SCN-001 load on attacker (Ansible native async)
       shell: |
-        ssh -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no ubuntu@10.0.4.10 \
-          "timeout 30 nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null" &
-      async: 40
-      poll: 0
-    - name: Measure network throughput (rx+tx delta over 5s)
-      shell: |
-        IFACE=$(ip route get 10.0.2.11 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
-        [ -z "$IFACE" ] && IFACE="ens3"
-        r1=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t1=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
-        sleep 5
-        r2=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t2=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
-        mbps=$(awk -v r1=$r1 -v r2=$r2 -v t1=$t1 -v t2=$t2 'BEGIN{printf "%.1f", (((r2-r1)+(t2-t1))*8)/5/1000000}')
-        echo "{\"throughput_mbps\":$mbps}"
-      register: suricata_net_parsed
-    - name: Set Suricata throughput fact
-      set_fact:
-        suricata_throughput: "{{ (suricata_net_parsed.stdout | from_json).throughput_mbps | float }}"
-    - name: Wait load
-      wait_for: timeout=7
-    - name: Measure CPU/RAM and compute MB
-      shell: |
-        PID=$(cat /var/log/suricata/CALIB/suricata.pid 2>/dev/null)
-        if [ -z "$PID" ]; then echo '{"suricata_cpu":0,"suricata_ram_mb":0}'; exit 0; fi
-        max_cpu=0; max_ram_kb=0
-        for i in 1 2 3 4 5; do
-          vals=$(ps -p $PID -o %cpu,rss --no-headers 2>/dev/null || echo "0 0")
-          cpu=$(echo $vals | awk '{print $1}') ; ram=$(echo $vals | awk '{print $2}')
-          if awk 'BEGIN{exit !('$cpu'>'$max_cpu')}'; then max_cpu=$cpu; fi
-          [ "$ram" -gt "$max_ram_kb" ] && max_ram_kb=$ram
-          sleep 3
+        for i in $(seq 1 {{ load_duration }}); do
+          nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
+          sleep 1
         done
+      async: "{{ load_duration + 15 }}"
+      poll: 0
+      delegate_to: archivirt-attacker
+      register: suricata_load_job
+
+    - name: Sample CPU/RAM and network throughput simultaneously over load_duration
+      shell: |
+        IFACE="ens4"
+        PID=$(cat /var/log/suricata/CALIB/suricata.pid 2>/dev/null)
+        r1=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t1=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
+        max_cpu=0; max_ram_kb=0
+        elapsed=0
+        while [ $elapsed -lt {{ load_duration }} ]; do
+          if [ -n "$PID" ]; then
+            vals=$(ps -p $PID -o %cpu,rss --no-headers 2>/dev/null || echo "0 0")
+            cpu=$(echo $vals | awk '{print $1}'); ram=$(echo $vals | awk '{print $2}')
+            if awk 'BEGIN{exit !('$cpu'>'$max_cpu')}'; then max_cpu=$cpu; fi
+            [ "$ram" -gt "$max_ram_kb" ] && max_ram_kb=$ram
+          fi
+          sleep 2
+          elapsed=$((elapsed + 2))
+        done
+        r2=$(cat /sys/class/net/$IFACE/statistics/rx_bytes); t2=$(cat /sys/class/net/$IFACE/statistics/tx_bytes)
         ram_mb=$((max_ram_kb / 1024))
-        echo "{\"suricata_cpu\":$max_cpu,\"suricata_ram_mb\":$ram_mb}"
+        mbps=$(awk -v r1=$r1 -v r2=$r2 -v t1=$t1 -v t2=$t2 -v d={{ load_duration }} 'BEGIN{printf "%.3f", (((r2-r1)+(t2-t1))*8)/d/1000000}')
+        echo "{\"suricata_cpu\":$max_cpu,\"suricata_ram_mb\":$ram_mb,\"suricata_throughput\":$mbps}"
       register: suricata_parsed
+
     - name: Set Suricata facts
       set_fact:
         suricata_cpu: "{{ (suricata_parsed.stdout | from_json).suricata_cpu | float }}"
         suricata_ram: "{{ (suricata_parsed.stdout | from_json).suricata_ram_mb | int }}"
+        suricata_throughput: "{{ (suricata_parsed.stdout | from_json).suricata_throughput | float }}"
+
+    - name: Cleanup async job on attacker
+      async_status:
+        jid: "{{ suricata_load_job.ansible_job_id }}"
+      delegate_to: archivirt-attacker
+      register: job_result2
+      until: job_result2.finished
+      retries: 1
+      ignore_errors: yes
+
     - name: Stop Suricata
       shell: "bash {{ suricata_script }} stop CALIB"
       ignore_errors: yes

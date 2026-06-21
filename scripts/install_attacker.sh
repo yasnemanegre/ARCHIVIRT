@@ -35,6 +35,17 @@ apt-get install -y --no-install-recommends \
   curl wget \
   2>&1 | tail -5
 
+# --- Verify nmap survived dependency resolution (workaround for apt bug) -----
+if ! command -v nmap >/dev/null 2>&1; then
+  echo "[ARCHIVIRT] WARNING: nmap missing after install, reinstalling explicitly..."
+  apt-get install -y --no-install-recommends \
+    -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/archivirt-local.list \
+    nmap nmap-common 2>&1 | tail -5
+fi
+if ! command -v nmap >/dev/null 2>&1; then
+  echo "[ARCHIVIRT] ERROR: nmap still missing — SCN-001 will fail silently"
+fi
+
 # --- Install slowloris attack script -----------------------------------------
 mkdir -p /opt/archivirt/attack-scripts
 cat > /opt/archivirt/attack-scripts/slowloris.py << 'PYEOF'

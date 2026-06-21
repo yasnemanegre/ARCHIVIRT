@@ -72,7 +72,17 @@ sudo ovs-vsctl \
        output-port=@mirror_out \
   -- add Bridge $MONITOR_BRIDGE mirrors @m
 
-echo "✅ OVS mirror configured: ovs-targets + ovs-attack → $MONITOR_PORT"
+# Create SEPARATE mirror on ovs-attack (one Mirror object per OVS bridge required)
+sudo ovs-vsctl --if-exists destroy Mirror "${MIRROR_NAME}-attack" 2>/dev/null || true
+sudo ovs-vsctl \
+  -- --id=@mirror_out2 get Port $MONITOR_PORT \
+  -- --id=@m2 create Mirror \
+       name="${MIRROR_NAME}-attack" \
+       select-all=true \
+       output-port=@mirror_out2 \
+  -- add Bridge ovs-attack mirrors @m2
+
+echo "✅ OVS mirrors configured: ovs-targets AND ovs-attack → $MONITOR_PORT"
 
 # --- Verify mirror -----------------------------------------------------------
 echo "[ARCHIVIRT] Mirror status:"
