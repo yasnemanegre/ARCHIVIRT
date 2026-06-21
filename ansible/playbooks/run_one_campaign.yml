@@ -44,6 +44,15 @@
     done
   ignore_errors: yes
 
+- name: "[C{{ campaign_id }}] Calibrate performance (CPU/RAM/Mbps under live load)"
+  shell: |
+    cd /home/archivirt/ARCHIVIRT && \
+    ansible-playbook ansible/playbooks/calibrate_performance.yml \
+      -i ansible/inventory/hosts.ini \
+      --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1 || true
+  register: calibrate_output
+  ignore_errors: yes
+
 - name: "[C{{ campaign_id }}] Build results"
   shell: cd /home/archivirt/ARCHIVIRT && python3 scripts/build_final_results.py 2>/dev/null
   ignore_errors: yes
@@ -53,6 +62,12 @@
     cp /home/archivirt/ARCHIVIRT/results/archivirt_final_comparison.json \
        /home/archivirt/ARCHIVIRT/results/campaigns/campaign_{{ campaign_id }}_comparison.json
   ignore_errors: yes
+- name: "[C{{ campaign_id }}] Save performance baseline"
+  shell: |
+    cp /home/archivirt/ARCHIVIRT/results/performance_baseline.json \
+       /home/archivirt/ARCHIVIRT/results/campaigns/campaign_{{ campaign_id }}_performance.json
+  ignore_errors: yes
+
 
 - name: "[C{{ campaign_id }}] DR summary"
   shell: |
