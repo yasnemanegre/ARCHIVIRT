@@ -85,6 +85,22 @@
         enabled: yes
 
 
+    - name: Synchroniser les scripts install_*.sh depuis le repo vers le miroir (IaC — évite versions périmées)
+      copy:
+        src: "/home/archivirt/ARCHIVIRT/scripts/{{ item }}"
+        dest: "/var/spool/apt-mirror/packages/{{ item }}"
+        mode: '0755'
+        owner: root
+        group: root
+      loop:
+        - install_attacker.sh
+        - install_monitor.sh
+        - install_manager.sh
+        - install_targets.sh
+      loop_control:
+        label: "{{ item }}"
+      ignore_errors: yes
+
     - name: Télécharger dépendances manquantes (phase 2 - LAMP/Samba/MariaDB)
       shell: |
         cd /var/spool/apt-mirror/packages

@@ -1,6 +1,6 @@
 {
   "title": "ARCHIVIRT - IDS Comparison Report",
-  "date": "2026-06-14",
+  "date": "2026-06-21",
   "table2": {
     "title": "Table 2: Detection Efficiency Metrics (average over 10 runs)",
     "rows": [
@@ -97,16 +97,16 @@
       {
         "ids": "Snort 3.1.74.0",
         "total_alerts": 157549,
-        "cpu": 6.8,
+        "cpu": 7.0,
         "ram": 56,
-        "mbit": 945
+        "mbit": 0.0
       },
       {
         "ids": "Suricata 6.0.4",
         "total_alerts": 2534,
-        "cpu": 16.0,
+        "cpu": 21.5,
         "ram": 40,
-        "mbit": 1120
+        "mbit": 0.0
       }
     ]
   },
