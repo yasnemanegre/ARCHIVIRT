@@ -25,7 +25,7 @@
 | Snort 3.1.74.0 | 157 549      | 10.4  | 56     | 2.4   |
 | Suricata 6.0.4 | 2 534        | 18.5  | 61     | 2.4   |
 
-> ⚠ CPU/RAM/Mbps from `performance_baseline.json` (static).
+> ✅ CPU/RAM/Mbps measured live under synchronized load (calibrate_performance.yml v2).
 > Dynamic metrics via Telegraf + InfluxDB + Grafana planned for v4.1.
 
 ## Table 4 — DBSCAN/UEBA Analysis
@@ -67,5 +67,5 @@ Full JSON: `results/archivirt_final_comparison.json`
 > Access: `ssh -L 3000:10.0.5.10:3000 archivirt@<tailscale-ip>`
 > Login: admin / archivirt
 >
-> ⚠ Table 3 (CPU/RAM/Mbps) still from static `performance_baseline.json`.
+> ✅ Table 3 fully dynamic — see v4.2 fix (commits 860742e, cb89a99).
 > Dynamic Table 3 via Telegraf planned for v4.2.
