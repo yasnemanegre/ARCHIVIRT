@@ -35,8 +35,8 @@ One command runs the full pipeline: destroy → OVS setup → deploy 6 VMs → 1
 
 | IDS            | Total   | CPU% | RAM MB | Mbps  | DBSCAN anomalies |
 |----------------|---------|------|--------|-------|-----------------|
-| Snort 3.1.74.0 | 157 549 | 6.8  | 56     | 945   | 4 (0.13%)       |
-| Suricata 6.0.4 | 2 534   | 16.0 | 40     | 1 120 | 0 (0.00%)       |
+| Snort 3.1.74.0 | 157 549 | 10.4 | 56     | 2.4   | 4 (0.13%)       |
+| Suricata 6.0.4 | 2 534   | 18.5 | 61     | 2.4   | 0 (0.00%)       |
 
 IaC validated: **5 full destroy/apply/run cycles — zero manual intervention.**
 
