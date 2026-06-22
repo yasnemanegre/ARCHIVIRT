@@ -11,7 +11,7 @@
   ignore_errors: yes
 
 - name: "[C{{ campaign_id }}] Reset tmp files"
-  shell: rm -f /tmp/snort3_SCN-*.* /tmp/suricata_SCN-*.*
+  shell: rm -f /tmp/snort3_*.* /tmp/suricata_*.*
   become: yes
 
 - name: "[C{{ campaign_id }}] Apply traffic mirrors"
@@ -23,25 +23,34 @@
     cd /home/archivirt/ARCHIVIRT && \
     ansible-playbook ansible/playbooks/run_all_scenarios.yml \
       -i ansible/inventory/hosts.ini \
-      --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1 || true
+      --ssh-extra-args="-o StrictHostKeyChecking=no"
   register: campaign_output
-  ignore_errors: yes
+  failed_when: false
+  async: 1800
+  poll: 30
+
+- name: "[C{{ campaign_id }}] Show run_all_scenarios outcome"
+  debug:
+    msg:
+      - "rc={{ campaign_output.rc | default('n/a') }}"
+      - "{{ campaign_output.stdout_lines[-15:] | default(['no output captured']) }}"
 
 - name: "[C{{ campaign_id }}] Fetch result.json files"
   shell: |
     for scn in SCN-001 SCN-002 SCN-003 SCN-004 SCN-005; do
       scp -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no \
-        ubuntu@10.0.3.10:/tmp/snort3_${scn}_result.json /tmp/ 2>/dev/null
+        ubuntu@10.0.3.10:/tmp/snort3_${scn}_result.json /tmp/ 2>/dev/null || true
       scp -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no \
-        ubuntu@10.0.3.10:/tmp/suricata_${scn}_result.json /tmp/ 2>/dev/null
+        ubuntu@10.0.3.10:/tmp/suricata_${scn}_result.json /tmp/ 2>/dev/null || true
       scp -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no \
-        ubuntu@10.0.4.10:/tmp/snort3_attack_start_times_${scn}.txt /tmp/ 2>/dev/null
+        ubuntu@10.0.4.10:/tmp/snort3_attack_start_times_${scn}.txt /tmp/ 2>/dev/null || true
       scp -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no \
-        ubuntu@10.0.4.10:/tmp/suricata_attack_start_times_${scn}.txt /tmp/ 2>/dev/null
+        ubuntu@10.0.4.10:/tmp/suricata_attack_start_times_${scn}.txt /tmp/ 2>/dev/null || true
       scp -i /home/archivirt/.ssh/archivirt_key -o StrictHostKeyChecking=no \
         ubuntu@10.0.3.10:/var/log/suricata/${scn}/eve.json \
-        /tmp/suricata_${scn}_alerts.json 2>/dev/null
+        /tmp/suricata_${scn}_alerts.json 2>/dev/null || true
     done
+    echo "Fetch completed (individual failures are non-fatal)"
   ignore_errors: yes
 
 - name: "[C{{ campaign_id }}] Calibrate performance (CPU/RAM/Mbps under live load)"

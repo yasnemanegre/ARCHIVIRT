@@ -15,6 +15,9 @@
         path: "{{ playbook_dir }}/../../results/campaigns"
         state: directory
         mode: '0755'
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
+      become: no
 
     - name: Run 10 campaigns sequentially
       include_tasks: run_one_campaign.yml
