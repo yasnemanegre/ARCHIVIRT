@@ -21,7 +21,7 @@
 
     - name: Run 10 campaigns sequentially
       include_tasks: run_one_campaign.yml
-      loop: "{{ range(1, 11) | list }}"
+      loop: "{{ range(1, (n_campaigns | default(10) | int) + 1) | list }}"
       loop_control:
         loop_var: campaign_id
         label: "Campaign {{ campaign_id }}/10"
