@@ -7,7 +7,7 @@
 #
 # Description:
 #   Orchestrates the complete ARCHIVIRT evaluation pipeline:
-#     1. Runs all 5 attack scenarios against Snort 3.12.2.0
+#     1. Runs all 5 attack scenarios against Snort 3.1.74.0
 #     2. Runs all 5 attack scenarios against Suricata 6.0.4
 #     3. Computes detection metrics (DR, FPR, latency)
 #     4. Runs DBSCAN/UEBA behavioural analysis
@@ -115,7 +115,7 @@
         daemon_reload: true
 
 # -----------------------------------------------------------------------------
-# SNORT 3.12.2.0 — Scenarios SCN-001 to SCN-005
+# SNORT 3.1.74.0 — Scenarios SCN-001 to SCN-005
 # -----------------------------------------------------------------------------
 
 - import_playbook: snort_scenario.yml

@@ -1,13 +1,13 @@
 ---
 # =============================================================================
-# ARCHIVIRT - Snort 3.12.2.0 IDS Test Scenario Playbook
+# ARCHIVIRT - Snort 3.1.74.0 IDS Test Scenario Playbook
 # =============================================================================
 # Author  : Yasnemanegre SAWADOGO (SPbSUT / SPbGUPTD)
 # License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
 # Version : 2.1.0 — 2026-05-11
 #
 # Description:
-#   Runs a single attack scenario against Snort 3.12.2.0 in passive IDS mode.
+#   Runs a single attack scenario against Snort 3.1.74.0 in passive IDS mode.
 #   Called by run_all_scenarios.yml for each of SCN-001 to SCN-005.
 #
 # Variables (passed by master playbook):
@@ -49,7 +49,7 @@
 
 
 # -----------------------------------------------------------------------------
-# PLAY 2 — Deploy and start Snort 3.12.2.0 on the monitor VM
+# PLAY 2 — Deploy and start Snort 3.1.74.0 on the monitor VM
 # -----------------------------------------------------------------------------
 
 - name: ARCHIVIRT - Start Snort3 on monitor
@@ -225,7 +225,7 @@
     - name: Save per-scenario result to JSON
       copy:
         content: >
-          {"scenario":"{{ scenario }}","ids":"Snort 3.12.2.0",
+          {"scenario":"{{ scenario }}","ids":"Snort 3.1.74.0",
           "alerts":{{ alert_count.stdout | trim | default(0) }},
           "date":"{{ ansible_date_time.date }}"}
         dest: "/tmp/snort3_{{ scenario }}_result.json"
