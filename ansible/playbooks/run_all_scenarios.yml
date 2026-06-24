@@ -188,6 +188,15 @@
   connection: local
   gather_facts: no
   tasks:
+    - name: List temp result files before build (debug visibility)
+      shell: ls -la /tmp/snort3_SCN-*_result.json /tmp/suricata_SCN-*_result.json 2>&1 || true
+      register: tmp_files_check
+      changed_when: false
+
+    - name: Show temp files present
+      debug:
+        msg: "{{ tmp_files_check.stdout_lines }}"
+
     - name: Run build_final_results.py
       shell: python3 /home/archivirt/ARCHIVIRT/scripts/build_final_results.py
       register: build_result
@@ -195,7 +204,10 @@
 
     - name: Show build output
       debug:
-        msg: "{{ build_result.stdout_lines }}"
+        msg:
+          - "rc={{ build_result.rc }}"
+          - "stdout: {{ build_result.stdout_lines }}"
+          - "stderr: {{ build_result.stderr_lines }}"
 
 
 # -----------------------------------------------------------------------------
