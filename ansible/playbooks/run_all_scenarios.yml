@@ -200,7 +200,7 @@
     - name: Run build_final_results.py
       shell: python3 /home/archivirt/ARCHIVIRT/scripts/build_final_results.py
       register: build_result
-      failed_when: false
+      failed_when: build_result.rc != 0
 
     - name: Show build output
       debug:
@@ -209,6 +209,7 @@
           - "stdout: {{ build_result.stdout_lines }}"
           - "stderr: {{ build_result.stderr_lines }}"
 
+      when: build_result is succeeded
 
 # -----------------------------------------------------------------------------
 # UEBA — DBSCAN behavioural anomaly analysis
