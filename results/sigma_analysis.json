@@ -1,6 +1,51 @@
 {
-  "n_campaigns": 10,
+  "n_campaigns_table2": 2,
+  "n_campaigns_table3": 2,
   "max_sigma_dr_pct": 0.0,
-  "verdict": "\u2705 VALID\u00c9 \u03c3 < 2%",
-  "details": {}
+  "max_sigma_performance_pct": 8.54,
+  "verdict_table2": "\u2705 VALID\u00c9 \u03c3 < 2%",
+  "verdict_table3": "\u274c \u03c3 max = 8.54% > 2%",
+  "details_table2": {},
+  "details_table3": {
+    "snort": {
+      "cpu": {
+        "mean": 7.45,
+        "sigma": 0.6364,
+        "sigma_pct": 8.54,
+        "n_campaigns": 2
+      },
+      "ram": {
+        "mean": 56.0,
+        "sigma": 0.0,
+        "sigma_pct": 0.0,
+        "n_campaigns": 2
+      },
+      "throughput": {
+        "mean": 2.422,
+        "sigma": 0.0453,
+        "sigma_pct": 1.87,
+        "n_campaigns": 2
+      }
+    },
+    "suricata": {
+      "cpu": {
+        "mean": 15.75,
+        "sigma": 0.3536,
+        "sigma_pct": 2.24,
+        "n_campaigns": 2
+      },
+      "ram": {
+        "mean": 61.0,
+        "sigma": 0.0,
+        "sigma_pct": 0.0,
+        "n_campaigns": 2
+      },
+      "throughput": {
+        "mean": 2.443,
+        "sigma": 0.0509,
+        "sigma_pct": 2.08,
+        "n_campaigns": 2
+      }
+    }
+  }
 }

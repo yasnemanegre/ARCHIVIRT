@@ -1,46 +1,46 @@
 {
   "ids": "Snort 3.1.74.0",
-  "date": "2026-05-15",
+  "date": "2026-06-25",
   "scenarios": {
     "SCN-001": {
-      "alerts": 153194,
-      "detection_rate": 100.0,
-      "latency_ms": 77.6,
-      "false_positive": 0.01
+      "alerts": 5,
+      "detection_rate": 10.0,
+      "latency_ms": 515.7,
+      "false_positive": 0.0
     },
     "SCN-002": {
-      "alerts": 114,
-      "detection_rate": 100.0,
-      "latency_ms": 74.8,
-      "false_positive": 0.01
+      "alerts": 0,
+      "detection_rate": 0.0,
+      "latency_ms": 0.0,
+      "false_positive": 0.0
     },
     "SCN-003": {
-      "alerts": 20,
-      "detection_rate": 100.0,
-      "latency_ms": 239.7,
-      "false_positive": 0.01
+      "alerts": 0,
+      "detection_rate": 0.0,
+      "latency_ms": 0.0,
+      "false_positive": 0.0
     },
     "SCN-004": {
-      "alerts": 4200,
-      "detection_rate": 100.0,
+      "alerts": 0,
+      "detection_rate": 0.0,
       "latency_ms": 0.0,
-      "false_positive": 0.01
+      "false_positive": 0.0
     },
     "SCN-005": {
-      "alerts": 21,
+      "alerts": 0,
       "detection_rate": "N/A",
       "latency_ms": "N/A",
-      "false_positive": 0.01
+      "false_positive": 0.0
     }
   },
-  "total_alerts": 157549,
+  "total_alerts": 5,
   "performance": {
-    "latency_ms": 0.834,
-    "snort_cpu": 1.6,
-    "snort_ram": 41,
-    "snort_throughput": 945,
-    "suricata_cpu": 7.7,
-    "suricata_ram": 46,
-    "suricata_throughput": 1120
+    "latency_ms": 1.447,
+    "snort_cpu": 8.4,
+    "snort_ram": 56,
+    "snort_throughput": 2.502,
+    "suricata_cpu": 18.5,
+    "suricata_ram": 61,
+    "suricata_throughput": 2.435
   }
 }

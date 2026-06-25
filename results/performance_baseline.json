@@ -1,1 +1,1 @@
-{"latency_ms": 4.305, "snort_cpu": 10.4, "snort_ram": 56, "snort_throughput": 2.387, "suricata_cpu": 18.5, "suricata_ram": 61, "suricata_throughput": 2.448}
+{"latency_ms": 1.447, "snort_cpu": 8.4, "snort_ram": 56, "snort_throughput": 2.502, "suricata_cpu": 18.5, "suricata_ram": 61, "suricata_throughput": 2.435}
