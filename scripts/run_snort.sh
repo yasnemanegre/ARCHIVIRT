@@ -36,7 +36,7 @@ case $ACTION in
     start)
         mkdir -p "$LOG_DIR"
         touch "${LOG_DIR}/alert_fast.txt" "${LOG_DIR}/alert_json.txt"
-        truncate -s 0 "${LOG_DIR}/snort_stdout.log" 2>/dev/null || true
+        truncate -s 0 "${LOG_DIR}/alert_fast.txt" "${LOG_DIR}/alert_json.txt" "${LOG_DIR}/snort_stdout.log" 2>/dev/null || true
         ip link set "$IFACE" up
         ip link set "$IFACE" promisc on
 
@@ -45,7 +45,7 @@ case $ACTION in
         # Run in background with & (no -D flag to avoid parent process exit)
         PLUGIN_OPT=""
         [ -d "$PLUGIN_PATH" ] && PLUGIN_OPT="--plugin-path $PLUGIN_PATH"
-        ${SNORT_BIN} \
+        stdbuf -oL -eL ${SNORT_BIN} \
           -i "$IFACE" \
           -c "$CONFIG" \
           $PLUGIN_OPT \
@@ -69,8 +69,8 @@ case $ACTION in
                 exit 1
             fi
 
-            # Check for ready: PID file exists + alert files created
-            if [ -f "${LOG_DIR}/alert_fast.txt" ] && [ -f "${LOG_DIR}/snort.pid" ]; then
+            # Check for ready: readiness signal from Snort log output
+            if grep -q "$READY_MSG" "${LOG_DIR}/snort_stdout.log" 2>/dev/null; then
                 echo "[ARCHIVIRT] Snort ready after ${WAITED}s — PID=$SNORT_PID logs=$LOG_DIR"
                 exit 0
             fi
@@ -86,7 +86,11 @@ case $ACTION in
             PID=$(cat "$PID_FILE")
             echo "[ARCHIVIRT] Stopping Snort PID=$PID for $SCENARIO ..."
             kill -SIGINT "$PID" 2>/dev/null
-            sleep 5
+            WAITED=0
+            while kill -0 "$PID" 2>/dev/null && [ $WAITED -lt 15 ]; do
+                sleep 1
+                WAITED=$((WAITED + 1))
+            done
             kill -9 "$PID" 2>/dev/null || true
             rm -f "$PID_FILE"
         else
