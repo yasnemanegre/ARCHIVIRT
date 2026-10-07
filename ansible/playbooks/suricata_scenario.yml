@@ -40,11 +40,19 @@
         pfx:    "{{ ids_prefix | default('suricata') }}"
         mode:   "{{ ids_mode   | default('ids') }}"
 
-    - name: Run archivirt_mirrors.sh (OVS port mirror)
+    - name: Clear OVS traffic mirrors for IPS mode
+      shell: |
+        ovs-vsctl --if-exists clear Bridge ovs-targets mirrors
+        ovs-vsctl --if-exists clear Bridge ovs-attack mirrors
+      become: yes
+      when: mode == "ips"
+
+    - name: Run archivirt_mirrors.sh for IDS mode
       shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
       become: yes
       ignore_errors: yes
       register: mirrors
+      when: mode == "ids"
 
     - name: Show mirrors status
       debug:
@@ -78,10 +86,19 @@
         src:  /home/archivirt/ARCHIVIRT/configs/suricata/suricata.yaml
         dest: /etc/suricata/suricata.yaml
 
-    - name: Re-apply OVS mirrors before Suricata start
+    - name: Clear OVS traffic mirrors before IPS start
+      shell: |
+        ovs-vsctl --if-exists clear Bridge ovs-targets mirrors
+        ovs-vsctl --if-exists clear Bridge ovs-attack mirrors
+      delegate_to: localhost
+      become: yes
+      when: mode == "ips"
+
+    - name: Re-apply OVS mirrors before IDS start
       shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
       delegate_to: localhost
       ignore_errors: yes
+      when: mode == "ids"
 
     - name: Check if Suricata is already running
       shell: "pgrep -f 'suricata.*pcap\\|suricata.*ens4' || echo 'not_running'"

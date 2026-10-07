@@ -38,30 +38,53 @@
     owner: root
     group: root
     mode: "0644"
-- name: Set monitoring interface to promiscuous mode
+- name: Deploy ARCHIVIRT dedicated IPS rules
+  ansible.builtin.template:
+    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/templates/archivirt-ips.rules.j2"
+    dest: /etc/suricata/rules/archivirt-ips.rules
+    owner: root
+    group: root
+    mode: "0644"
+  when: ids_mode | default('ids') == 'ips'
+
+- name: Configure packet capture interface for IDS mode
   ansible.builtin.shell: |
-    ip link set {{ monitor_interface | default('ens4') }} promisc on
+    ip link set {{ ids_capture_interface | default('ens4') }} up
+    ip link set {{ ids_capture_interface | default('ens4') }} promisc on
+  when: ids_mode | default('ids') == 'ids'
   changed_when: true
 
-- name: Configure iptables NFQUEUE for IPS mode
+- name: Disable promiscuous capture interface for IPS mode
   ansible.builtin.shell: |
-    # Exclure SSH et trafic de gestion du NFQUEUE
-    iptables -I INPUT -p tcp --dport 22 -j ACCEPT
-    iptables -I OUTPUT -p tcp --sport 22 -j ACCEPT
-    iptables -I FORWARD -p tcp --dport 22 -j ACCEPT
-    # NFQUEUE pour le trafic cible uniquement
-    iptables -A FORWARD -s {{ attack_subnet }} -d {{ target_subnet }} -j NFQUEUE --queue-num 0
-    iptables -A FORWARD -s {{ target_subnet }} -d {{ attack_subnet }} -j NFQUEUE --queue-num 0
+    ip link set {{ ids_capture_interface | default('ens4') }} promisc off || true
   when: ids_mode | default('ids') == 'ips'
-  ignore_errors: yes
+  changed_when: true
 
-- name: Remove iptables NFQUEUE rules for IDS mode
+- name: Configure scoped NFQUEUE rules for IPS mode
   ansible.builtin.shell: |
-    iptables -D FORWARD -i ens3 -o ens3 -j NFQUEUE --queue-num 0 2>/dev/null || true
-    iptables -D INPUT -j NFQUEUE --queue-num 0 2>/dev/null || true
-    iptables -D OUTPUT -j NFQUEUE --queue-num 0 2>/dev/null || true
+    set -e
+
+    # Remove obsolete broad SSH/NFQUEUE rules if present.
+    iptables -D FORWARD -p tcp --dport 22 -j ACCEPT 2>/dev/null || true
+    iptables -D FORWARD -j NFQUEUE --queue-num 0 2>/dev/null || true
+
+    # Experimental data plane: attacker -> targets.
+    iptables -C FORWARD -s {{ attack_subnet }} -d {{ target_subnet }} -j NFQUEUE --queue-num 0 2>/dev/null ||       iptables -I FORWARD 1 -s {{ attack_subnet }} -d {{ target_subnet }} -j NFQUEUE --queue-num 0
+
+    # Experimental data plane: targets -> attacker.
+    iptables -C FORWARD -s {{ target_subnet }} -d {{ attack_subnet }} -j NFQUEUE --queue-num 0 2>/dev/null ||       iptables -I FORWARD 1 -s {{ target_subnet }} -d {{ attack_subnet }} -j NFQUEUE --queue-num 0
+
+  when: ids_mode | default('ids') == 'ips'
+  changed_when: true
+
+- name: Remove scoped NFQUEUE rules for IDS mode
+  ansible.builtin.shell: |
+    iptables -D FORWARD -s {{ attack_subnet }} -d {{ target_subnet }} -j NFQUEUE --queue-num 0 2>/dev/null || true
+    iptables -D FORWARD -s {{ target_subnet }} -d {{ attack_subnet }} -j NFQUEUE --queue-num 0 2>/dev/null || true
+    iptables -D FORWARD -p tcp --dport 22 -j ACCEPT 2>/dev/null || true
+    iptables -D FORWARD -j NFQUEUE --queue-num 0 2>/dev/null || true
   when: ids_mode | default('ids') == 'ids'
-  ignore_errors: yes
+  changed_when: true
 
 - name: Configure Suricata to use correct interface
   ansible.builtin.replace:
@@ -103,7 +126,7 @@
     owner: ubuntu
     group: ubuntu
     mode: "0755"
-  when: ids_mode | default('ids') == 'ips'
+  when: false
 
 - name: Deploy IPS Enforcer systemd service
   ansible.builtin.copy:
@@ -123,7 +146,7 @@
 
       [Install]
       WantedBy=multi-user.target
-  when: ids_mode | default('ids') == 'ips'
+  when: false
 
 - name: Enable IPS Enforcer service
   ansible.builtin.systemd:
@@ -131,7 +154,7 @@
     daemon_reload: true
     enabled: true
     state: started
-  when: ids_mode | default('ids') == 'ips'
+  when: false
   ignore_errors: yes
 
 - name: Disable IPS Enforcer service (IDS mode)

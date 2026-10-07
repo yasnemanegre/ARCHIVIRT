@@ -4,7 +4,7 @@
 # =============================================================================
 # Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
 # License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
-# Version : 4.0.0 — 2026-05-19
+# Version : 4.1.0 — 2026-10-01
 #
 # Downloads ALL packages, dependencies, ET Open rules (Suricata + Snort 3)
 # to the local apt mirror. Uses apt-cache depends --recurse for automatic
@@ -34,6 +34,11 @@ cd "$MIRROR_DIR"
 
 echo "[ARCHIVIRT] Updating local apt mirror in $MIRROR_DIR ..."
 
+# --- Nettoyer les anciens .deb et index (évite l'accumulation de versions) ---
+echo "[ARCHIVIRT] Cleaning old .deb files and indexes..."
+rm -f "$MIRROR_DIR"/*.deb
+rm -f "$MIRROR_DIR"/Packages "$MIRROR_DIR"/Packages.gz
+
 # --- All top-level packages required by ARCHIVIRT VMs -----------------------
 TOP_PACKAGES="nmap nmap-common hydra sqlmap hping3 tcpreplay python3-scapy \
   suricata suricata-update snort3 \
@@ -46,7 +51,8 @@ TOP_PACKAGES="nmap nmap-common hydra sqlmap hping3 tcpreplay python3-scapy \
 echo "[ARCHIVIRT] Resolving full dependency tree..."
 ALL_DEPS=$(apt-cache depends --recurse --no-recommends --no-suggests \
   --no-conflicts --no-breaks --no-replaces --no-enhances \
-  $TOP_PACKAGES 2>/dev/null | grep "^\w" | sort -u | tr '\n' ' ')
+  $TOP_PACKAGES 2>/dev/null | grep "^\w" | sort -u \
+  | grep -v "systemd-standalone-tmpfiles" | tr '\n' ' ')
 
 COUNT=$(echo "$ALL_DEPS" | wc -w)
 echo "[ARCHIVIRT] Total packages to download (including dependencies): $COUNT"

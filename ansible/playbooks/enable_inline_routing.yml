@@ -1,0 +1,225 @@
+---
+# ARCHIVIRT — L3 inline routing for IPS experiments
+# Keeps management traffic separate from the experimental data plane.
+
+- name: Configure ARCHIVIRT inline routing on Monitor
+  hosts: monitor
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Configure persistent IPv4 forwarding
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-archivirt-inline.conf
+        mode: '0644'
+        content: |
+          net.ipv4.ip_forward=1
+
+    - name: Enable IPv4 forwarding immediately
+      ansible.builtin.command:
+        cmd: sysctl -w net.ipv4.ip_forward=1
+
+    - name: Configure persistent Monitor target-side address
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/archivirt-inline-routing.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=ARCHIVIRT inline L3 routing
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/sbin/ip addr replace 10.0.2.200/24 dev ens4
+          ExecStart=/sbin/ip route replace 10.0.4.0/24 dev ens5
+          ExecStart=/sbin/ip route replace 10.0.2.0/24 dev ens4
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start Monitor inline routing service
+      ansible.builtin.systemd:
+        name: archivirt-inline-routing.service
+        enabled: true
+        daemon_reload: true
+        state: started
+
+    - name: Apply persistent sysctl configuration
+      ansible.builtin.command:
+        cmd: sysctl --system
+
+
+- name: Configure ARCHIVIRT inline route on Attacker
+  hosts: attacker
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Configure persistent Attacker route
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/archivirt-inline-routing.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=ARCHIVIRT attacker inline route
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/sbin/ip route replace 10.0.2.0/24 via 10.0.4.200 dev ens3
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start Attacker inline route service
+      ansible.builtin.systemd:
+        name: archivirt-inline-routing.service
+        enabled: true
+        daemon_reload: true
+        state: started
+
+
+- name: Configure ARCHIVIRT inline routes on Targets
+  hosts: targets
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Configure persistent Target return route
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/archivirt-inline-routing.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=ARCHIVIRT target inline route
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/sbin/ip route replace 10.0.4.0/24 via 10.0.2.200 dev ens3
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start Target inline route service
+      ansible.builtin.systemd:
+        name: archivirt-inline-routing.service
+        enabled: true
+        daemon_reload: true
+        state: started
+
+
+- name: Remove direct host L3 bypass between experimental networks
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Install persistent ARCHIVIRT host bypass protection
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/archivirt-inline-firewall.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          set -e
+
+          iptables -C FORWARD \
+            -i ovs-attack -o ovs-targets \
+            -s 10.0.4.0/24 -d 10.0.2.0/24 \
+            -j REJECT --reject-with icmp-admin-prohibited 2>/dev/null || \
+          iptables -I FORWARD 1 \
+            -i ovs-attack -o ovs-targets \
+            -s 10.0.4.0/24 -d 10.0.2.0/24 \
+            -j REJECT --reject-with icmp-admin-prohibited
+
+          iptables -C FORWARD \
+            -i ovs-targets -o ovs-attack \
+            -s 10.0.2.0/24 -d 10.0.4.0/24 \
+            -j REJECT --reject-with icmp-admin-prohibited 2>/dev/null || \
+          iptables -I FORWARD 1 \
+            -i ovs-targets -o ovs-attack \
+            -s 10.0.2.0/24 -d 10.0.4.0/24 \
+            -j REJECT --reject-with icmp-admin-prohibited
+
+    - name: Create persistent host firewall service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/archivirt-inline-firewall.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=ARCHIVIRT host protection against L3 IPS bypass
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/sbin/archivirt-inline-firewall.sh
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start host bypass protection
+      ansible.builtin.systemd:
+        name: archivirt-inline-firewall.service
+        enabled: true
+        daemon_reload: true
+        state: started
+
+
+- name: Verify ARCHIVIRT inline routing
+  hosts: monitor:attacker:targets
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Show interfaces
+      ansible.builtin.command:
+        cmd: ip -br addr
+      register: inline_addr
+      changed_when: false
+
+    - name: Show routing table
+      ansible.builtin.command:
+        cmd: ip route
+      register: inline_routes
+      changed_when: false
+
+    - name: Display inline routing state
+      ansible.builtin.debug:
+        msg:
+          - "{{ inventory_hostname }}"
+          - "{{ inline_addr.stdout }}"
+          - "{{ inline_routes.stdout }}"
+
+- name: Verify host bypass protection
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Show protected forwarding rules
+      ansible.builtin.command:
+        cmd: iptables -vnL FORWARD
+      register: host_forward
+      changed_when: false
+
+    - name: Show host routes
+      ansible.builtin.command:
+        cmd: ip route
+      register: host_routes
+      changed_when: false
+
+    - name: Display host protection
+      ansible.builtin.debug:
+        msg:
+          - "{{ host_forward.stdout }}"
+          - "{{ host_routes.stdout }}"

@@ -1,0 +1,33 @@
+# ARCHIVIRT IPS rules
+# Dedicated prevention profile.
+# IDS rules remain in archivirt-local.rules.
+#
+# These rules intentionally use DROP so that Suricata + NFQUEUE
+# performs the primary inline enforcement.
+
+# TCP SYN scan
+drop tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ARCHIVIRT IPS Nmap SYN Scan"; flags:S; classtype:network-scan; sid:2100001; rev:2;)
+
+# SSH brute-force
+drop tcp $EXTERNAL_NET any -> $SSH_SERVERS $SSH_PORTS (msg:"ARCHIVIRT IPS SSH Brute-force"; threshold:type both, track by_src, count 5, seconds 30; classtype:attempted-user; sid:2100010; rev:1;)
+
+# HTTP SQL injection UNION
+drop http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT IPS HTTP SQLi UNION"; flow:to_server,established; http.uri; content:"UNION"; nocase; classtype:web-application-attack; sid:2100020; rev:1;)
+
+# HTTP SQL injection Boolean
+drop http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT IPS HTTP SQLi Boolean"; flow:to_server,established; http.uri; content:"OR%201%3D1"; nocase; classtype:web-application-attack; sid:2100021; rev:1;)
+
+# SQL sleep
+drop http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT IPS HTTP SQLi SLEEP"; flow:to_server,established; http.uri; content:"SLEEP%28"; nocase; classtype:web-application-attack; sid:2100022; rev:1;)
+
+# sqlmap user-agent
+drop http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT IPS sqlmap UA"; flow:to_server,established; http.user_agent; content:"sqlmap"; classtype:web-application-attack; sid:2100023; rev:1;)
+
+# HTTP SYN flood
+drop tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT IPS HTTP SYN Flood"; flags:S; threshold:type both, track by_dst, count 100, seconds 10; classtype:denial-of-service; sid:2100030; rev:1;)
+
+# FTP brute-force
+drop tcp $EXTERNAL_NET any -> $FTP_SERVERS $FTP_PORTS (msg:"ARCHIVIRT IPS FTP Brute-force"; threshold:type threshold, track by_src, count 5, seconds 30; classtype:attempted-user; sid:2100040; rev:1;)
+
+# SMB scan
+drop tcp $EXTERNAL_NET any -> $HOME_NET 445 (msg:"ARCHIVIRT IPS SMB Scan"; threshold:type threshold, track by_src, count 5, seconds 10; classtype:network-scan; sid:2100050; rev:1;)

@@ -136,6 +136,9 @@ rule-files:
   - smb-events.rules
   - kerberos-events.rules
   - archivirt-local.rules
+{% if ids_mode | default('ids') == 'ips' %}
+  - archivirt-ips.rules
+{% endif %}
 
 # Host table
 host-mode: auto

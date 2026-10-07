@@ -1,0 +1,39 @@
+---
+# ARCHIVIRT — Ensure VM interfaces are attached to their OVS bridges
+# Idempotent: safe to run after each VM start
+# Author: Yasnemanegre SAWADOGO (SPbGUPTD)
+
+- name: Ensure VM interfaces are attached to OVS bridges
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Get list of VM interfaces with their libvirt network
+      shell: |
+        for vm in archivirt-attacker archivirt-monitor-ids \
+                  archivirt-target-01 archivirt-target-02 archivirt-target-03; do
+          virsh domiflist "$vm" 2>/dev/null | awk -v VM="$vm" 'NR>2 && $1 ~ /^vnet/ {print VM, $1, $3}'
+        done
+      register: vm_ifaces
+      changed_when: false
+
+    - name: Attach each interface to the correct OVS bridge
+      shell: |
+        IFACE="{{ item.split()[1] }}"
+        NET="{{ item.split()[2] }}"
+        case "$NET" in
+          archivirt-net-attack)  BRIDGE="ovs-attack"  ;;
+          archivirt-net-monitor) BRIDGE="ovs-monitor" ;;
+          archivirt-net-targets) BRIDGE="ovs-targets" ;;
+          *) BRIDGE="" ;;
+        esac
+        if [ -n "$BRIDGE" ]; then
+          ovs-vsctl --may-exist add-port "$BRIDGE" "$IFACE"
+        fi
+      loop: "{{ vm_ifaces.stdout_lines }}"
+      register: attach_result
+
+    - name: Show attach summary
+      debug:
+        msg: "{{ attach_result.results | map(attribute='item') | list }}"
