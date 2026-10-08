@@ -1,0 +1,11 @@
+{
+  "window_seconds": 21.226,
+  "cpu_percent": 12.11,
+  "rss_mb": 53.6,
+  "captured_packets": 13226.0,
+  "captured_bytes": 1095498.0,
+  "captured_pps": 623.1,
+  "captured_mbps": 0.4129,
+  "captured_drops": 0.0,
+  "notes": []
+}

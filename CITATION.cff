@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use ARCHIVIRT, please cite it as below."
+title: "ARCHIVIRT — Automated Reproducible Cyber Hybrid Infrastructure for Virtual SOAR/IDS-IPS Testing Labs"
+authors:
+  - family-names: "Sawadogo"
+    given-names: "Yasnemanegre"
+    affiliation: "Saint Petersburg State University of Industrial Technologies and Design (SPbGUPTD)"
+repository-code: "https://github.com/yasnemanegre/ARCHIVIRT"
+license: MIT
+version: "article2-experimental-v1"
+date-released: "2026-10-08"
+# NOTE: the following fields are intentionally left unset pending author input
+# (do not invent): doi, orcid, preferred-citation (Article 2 publication details).

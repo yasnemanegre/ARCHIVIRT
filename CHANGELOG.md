@@ -4,6 +4,28 @@
 
 ---
 
+## [Article 2 — Experimental Freeze] — 2026-10-08
+### Added
+- `campaign_v1/` experimental engine: engines (suricata IDS/IPS, snort3 offline-gated stub, stop), scenarios SCN-001..005, discriminative Article-2 rule sets, offline manifest, canonical result schema, preflight.
+- `scripts/campaign_v1/` processors & analysis: orchestrator, per-run validation with ground-truth TP/FP/FN/TN classification, performance collection, offline readiness audit, metrics/statistics/tables analyzer, figures, synthesis, scientific audit, publication tables.
+- Repeated IDS (×10) and IPS (×10) campaigns + baseline (×3); 115 runs (100 VALID, 15 INVALID by design, 0 prerequisite-missing).
+- Statistical analysis (n/mean/median/SD/min/max/CI95/CV) and run-level confusion matrix.
+- Reproducibility tables (1–9) and publication-source tables (A–K) + 9 figures.
+- Scientific audit (`scientific_audit.md`) and synthesis (`synthesis.md`).
+- Article-2 result dataset under `results/campaign-v1/article2/` + committed per-run records and provenance.
+### Fixed
+- Baseline performance aggregation (baseline runs are INVALID-by-design for detection but their system/traffic metrics are now aggregated).
+- Marked IPS mirror-interface throughput as NOT_APPLICABLE (inline path ens4/ens5 not mirrored).
+- Mode-aware detection scoring (IPS drop SID vs IDS alert SID).
+### Documented
+- SCN-002 limitation: SSH target is public-key-only → measured as an SSH connection-rate attack pattern, not password guessing.
+- Metrics are a property of the controlled Article-2 signature set, not a universal Suricata benchmark.
+### Notes
+- Out of scope for this freeze (Phase 2): offline Artifact Set, destroy/rebuild offline, Snort 3, DBSCAN/ML/UEBA.
+- External dependency used for figures: matplotlib (recorded for a future Offline Artifact Set).
+
+---
+
 ## [v3.2] — 2026-05-17
 ### Fixed (session 16-17.05.2026)
 - **Snort 3.1.74.0**: règles SQLi granulaires (encodé/non-encodé)

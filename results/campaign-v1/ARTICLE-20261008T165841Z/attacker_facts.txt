@@ -1,0 +1,7 @@
+nmap_version=7.80
+hydra_version=v9.2
+sqlmap_version=1.6.4#stable
+python3_version=3.10.12
+curl_version=7.81.0
+rockyou_file=PRESENT
+slowloris_file=PRESENT

@@ -1,0 +1,8 @@
+# ARCHIVIRT Article 2 — discriminative IPS signature set (controlled lab).
+# Same selectors as the IDS set but action=drop, for inline (NFQUEUE) mode.
+# A real blocking event (event_type=drop / alert.action=blocked) in eve.json is
+# the ONLY accepted proof of blocking — the presence of these rules is not.
+drop tcp any any -> $HOME_NET any (msg:"ARCHIVIRT IPS SCN-001 Nmap SYN scan"; flow:to_server; flags:S; detection_filter:track by_src, count 100, seconds 5; sid:2100001; rev:2;)
+drop tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT IPS SCN-002 SSH brute-force"; flow:to_server; flags:S; detection_filter:track by_src, count 5, seconds 10; sid:2100002; rev:2;)
+drop http any any -> $HOME_NET any (msg:"ARCHIVIRT IPS SCN-003 SQLMap tool"; flow:to_server; http.user_agent; content:"sqlmap"; nocase; sid:2100003; rev:2;)
+drop tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT IPS SCN-004 Slowloris HTTP DoS"; flow:to_server; flags:S; detection_filter:track by_src, count 50, seconds 10; sid:2100004; rev:2;)

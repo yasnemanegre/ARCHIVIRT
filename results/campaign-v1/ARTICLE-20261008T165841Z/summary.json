@@ -1,0 +1,47 @@
+{
+  "ips:SCN-004": {
+    "runs_total": 10,
+    "runs_valid": 10,
+    "runs_invalid": 0,
+    "runs_prerequisite_missing": 0,
+    "detections": 10,
+    "blocked": 10,
+    "alerts": 150
+  },
+  "ips:SCN-005": {
+    "runs_total": 10,
+    "runs_valid": 10,
+    "runs_invalid": 0,
+    "runs_prerequisite_missing": 0,
+    "detections": 0,
+    "blocked": 0,
+    "alerts": 0
+  },
+  "ips:SCN-002": {
+    "runs_total": 10,
+    "runs_valid": 10,
+    "runs_invalid": 0,
+    "runs_prerequisite_missing": 0,
+    "detections": 10,
+    "blocked": 10,
+    "alerts": 200
+  },
+  "ips:SCN-003": {
+    "runs_total": 10,
+    "runs_valid": 10,
+    "runs_invalid": 0,
+    "runs_prerequisite_missing": 0,
+    "detections": 10,
+    "blocked": 10,
+    "alerts": 30
+  },
+  "ips:SCN-001": {
+    "runs_total": 10,
+    "runs_valid": 10,
+    "runs_invalid": 0,
+    "runs_prerequisite_missing": 0,
+    "detections": 10,
+    "blocked": 10,
+    "alerts": 159487
+  }
+}

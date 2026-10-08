@@ -1,0 +1,4 @@
+suricata_version=6.0.4
+snort3_version=ABSENT
+libdaq3_version=ABSENT
+suricata_rules_archivirt_file=PRESENT

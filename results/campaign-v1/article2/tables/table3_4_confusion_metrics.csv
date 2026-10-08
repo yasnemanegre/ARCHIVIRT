@@ -1,0 +1,4 @@
+mode,TP,FP,FN,TN,accuracy,precision,recall,f1,fpr,fnr
+ids,40,0,0,10,1.0,1.0,1.0,1.0,0.0,0.0
+baseline,0,0,0,0,NOT_AVAILABLE,NOT_AVAILABLE,NOT_AVAILABLE,NOT_AVAILABLE,NOT_AVAILABLE,NOT_AVAILABLE
+ips,40,0,0,10,1.0,1.0,1.0,1.0,0.0,0.0

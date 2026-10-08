@@ -1,0 +1,94 @@
+{
+  "manifest_version": "1.0",
+  "description": "ARCHIVIRT campaign_v1 OFFLINE ARTIFACT SET. Declares every artifact a campaign needs to be present LOCALLY before experimentation. The audit never downloads anything; a missing artifact is reported, never fetched.",
+  "offline_source": {
+    "apt_mirror": "http://10.0.3.1:8080 (monitor) / http://10.0.4.1:8080 (attacker)",
+    "mirror_docroot_on_host": "/var/spool/apt-mirror/packages"
+  },
+  "artifacts": [
+    {
+      "id": "suricata",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "binary",
+      "expect_version": "6.0.4",
+      "required_for": ["engine:suricata"]
+    },
+    {
+      "id": "suricata_rules_archivirt",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "file",
+      "path": "/etc/suricata/rules/archivirt.rules",
+      "required_for": ["engine:suricata"]
+    },
+    {
+      "id": "snort3",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "binary",
+      "expect_version": "3.",
+      "required_for": ["engine:snort3"]
+    },
+    {
+      "id": "libdaq3",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "pkg",
+      "expect_version": "3.",
+      "required_for": ["engine:snort3"]
+    },
+    {
+      "id": "nmap",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "expect_version": "7.",
+      "required_for": ["SCN-001"]
+    },
+    {
+      "id": "hydra",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "required_for": ["SCN-002"]
+    },
+    {
+      "id": "rockyou",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "file",
+      "path": "/usr/share/wordlists/rockyou.txt",
+      "required_for": ["SCN-002"]
+    },
+    {
+      "id": "sqlmap",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "required_for": ["SCN-003"]
+    },
+    {
+      "id": "slowloris",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "file",
+      "path": "/opt/archivirt/attack-scripts/slowloris.py",
+      "required_for": ["SCN-004"]
+    },
+    {
+      "id": "python3",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "required_for": ["SCN-004", "SCN-005"]
+    },
+    {
+      "id": "curl",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "required_for": ["SCN-005"]
+    }
+  ]
+}

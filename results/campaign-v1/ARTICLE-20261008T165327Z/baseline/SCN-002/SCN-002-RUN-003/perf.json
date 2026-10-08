@@ -1,0 +1,14 @@
+{
+  "window_seconds": 6.268,
+  "cpu_percent": null,
+  "rss_mb": null,
+  "captured_packets": 468.0,
+  "captured_bytes": 46720.0,
+  "captured_pps": 74.7,
+  "captured_mbps": 0.0596,
+  "captured_drops": 0.0,
+  "notes": [
+    "cpu_percent=null: no Suricata process (expected in baseline mode)",
+    "rss_mb=null: no Suricata RSS (expected in baseline mode)"
+  ]
+}

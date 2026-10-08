@@ -1,0 +1,7 @@
+{
+  "campaign_id": "ARTICLE-20261008T165841Z",
+  "engine": "suricata-6.0.4",
+  "mode": "ips",
+  "runs_per_scenario": 10,
+  "scenarios": ["SCN-001", "SCN-002", "SCN-003", "SCN-004", "SCN-005"]
+}
