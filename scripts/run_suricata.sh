@@ -46,8 +46,7 @@ case $ACTION in
 
         if [ "$MODE" = "ips" ]; then
             echo "[ARCHIVIRT] Starting Suricata IPS (NFQ queue=$NFQ_QUEUE) for $SCENARIO ..."
-            iptables -I FORWARD -j NFQUEUE --queue-num $NFQ_QUEUE 2>/dev/null || true
-            "$SURICATA_BIN" -c "$CONFIG" -q "$NFQ_QUEUE" -l "$LOG_DIR" \
+            "$SURICATA_BIN" -c "$CONFIG" -q "$NFQ_QUEUE" --runmode=autofp -l "$LOG_DIR" \
                 > "${LOG_DIR}/suricata_stdout.log" 2>&1 &
         else
             echo "[ARCHIVIRT] Starting Suricata IDS (AF-PACKET, iface=$IFACE) for $SCENARIO ..."

@@ -47,16 +47,21 @@
     mode: "0644"
   when: ids_mode | default('ids') == 'ips'
 
-- name: Configure packet capture interface for IDS mode
+- name: Configure passive IDS capture interfaces
   ansible.builtin.shell: |
-    ip link set {{ ids_capture_interface | default('ens4') }} up
-    ip link set {{ ids_capture_interface | default('ens4') }} promisc on
+    set -e
+    for iface in $(echo "{{ ids_capture_interfaces | default('ens6,ens7') }}" | tr ',' ' '); do
+      ip link set "$iface" up
+      ip link set "$iface" promisc on
+    done
   when: ids_mode | default('ids') == 'ids'
   changed_when: true
 
-- name: Disable promiscuous capture interface for IPS mode
+- name: Disable passive IDS capture interfaces in IPS mode
   ansible.builtin.shell: |
-    ip link set {{ ids_capture_interface | default('ens4') }} promisc off || true
+    for iface in $(echo "{{ ids_capture_interfaces | default('ens6,ens7') }}" | tr ',' ' '); do
+      ip link set "$iface" promisc off || true
+    done
   when: ids_mode | default('ids') == 'ips'
   changed_when: true
 
@@ -86,11 +91,6 @@
   when: ids_mode | default('ids') == 'ids'
   changed_when: true
 
-- name: Configure Suricata to use correct interface
-  ansible.builtin.replace:
-    path: /etc/suricata/suricata.yaml
-    regexp: "interface: default"
-    replace: "interface: {{ monitor_interface | default('ens4') }}"
 
 - name: Configure Suricata service command (IDS vs IPS)
   ansible.builtin.lineinfile:

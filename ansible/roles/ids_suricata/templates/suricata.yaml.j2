@@ -155,9 +155,10 @@ nfqueue:
   batchcount: 20
 {% else %}
 af-packet:
-  - interface: default
+{% for capture_interface in (ids_capture_interfaces | default('ens6,ens7')).split(',') %}
+  - interface: {{ capture_interface | trim }}
     threads: auto
-    cluster-id: 99
+    cluster-id: {{ 99 + loop.index0 }}
     cluster-type: cluster_flow
     defrag: yes
     use-mmap: yes
@@ -166,12 +167,15 @@ af-packet:
     block-size: 32768
     block-timeout: 10
     use-emergency-flush: yes
+{% endfor %}
 
 pcap:
-  - interface: default
+{% for capture_interface in (ids_capture_interfaces | default('ens6,ens7')).split(',') %}
+  - interface: {{ capture_interface | trim }}
     buffer-size: 16mb
     bpf-filter: "not host {{ archivirt_host_ip }}"
     checksum-checks: auto
+{% endfor %}
 {% endif %}
 
 legacy:

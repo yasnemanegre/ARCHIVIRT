@@ -82,9 +82,52 @@
         mode: "0755"
 
     - name: Deploy Suricata configuration
-      copy:
-        src:  /home/archivirt/ARCHIVIRT/configs/suricata/suricata.yaml
+      ansible.builtin.template:
+        src: /home/archivirt/ARCHIVIRT/ansible/roles/ids_suricata/templates/suricata.yaml.j2
         dest: /etc/suricata/suricata.yaml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy ARCHIVIRT local Suricata rules
+      ansible.builtin.template:
+        src: /home/archivirt/ARCHIVIRT/ansible/roles/ids_suricata/templates/archivirt-local.rules.j2
+        dest: /etc/suricata/rules/archivirt-local.rules
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy ARCHIVIRT IPS rules
+      ansible.builtin.template:
+        src: /home/archivirt/ARCHIVIRT/ansible/roles/ids_suricata/templates/archivirt-ips.rules.j2
+        dest: /etc/suricata/rules/archivirt-ips.rules
+        owner: root
+        group: root
+        mode: "0644"
+      when: mode == "ips"
+
+    - name: Configure scoped NFQUEUE rules for IPS mode
+      ansible.builtin.shell: |
+        set -e
+
+        iptables -D FORWARD -j NFQUEUE --queue-num 0 2>/dev/null || true
+        iptables -D FORWARD -p tcp --dport 22 -j ACCEPT 2>/dev/null || true
+
+        iptables -C FORWARD           -s {{ attack_subnet }}           -d {{ target_subnet }}           -j NFQUEUE --queue-num 0 2>/dev/null ||         iptables -I FORWARD 1           -s {{ attack_subnet }}           -d {{ target_subnet }}           -j NFQUEUE --queue-num 0
+
+        iptables -C FORWARD           -s {{ target_subnet }}           -d {{ attack_subnet }}           -j NFQUEUE --queue-num 0 2>/dev/null ||         iptables -I FORWARD 1           -s {{ target_subnet }}           -d {{ attack_subnet }}           -j NFQUEUE --queue-num 0
+      when: mode == "ips"
+      changed_when: true
+
+    - name: Remove NFQUEUE rules for IDS mode
+      ansible.builtin.shell: |
+        iptables -D FORWARD           -s {{ attack_subnet }}           -d {{ target_subnet }}           -j NFQUEUE --queue-num 0 2>/dev/null || true
+
+        iptables -D FORWARD           -s {{ target_subnet }}           -d {{ attack_subnet }}           -j NFQUEUE --queue-num 0 2>/dev/null || true
+
+        iptables -D FORWARD           -j NFQUEUE --queue-num 0 2>/dev/null || true
+      when: mode == "ids"
+      changed_when: true
 
     - name: Clear OVS traffic mirrors before IPS start
       shell: |
