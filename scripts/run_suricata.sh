@@ -46,8 +46,7 @@ case $ACTION in
 
         if [ "$MODE" = "ips" ]; then
             echo "[ARCHIVIRT] Starting Suricata IPS (NFQ queue=$NFQ_QUEUE) for $SCENARIO ..."
-            iptables -I FORWARD -j NFQUEUE --queue-num $NFQ_QUEUE 2>/dev/null || true
-            "$SURICATA_BIN" -c "$CONFIG" -q "$NFQ_QUEUE" -l "$LOG_DIR" \
+            "$SURICATA_BIN" -c "$CONFIG" -q "$NFQ_QUEUE" --runmode=autofp -l "$LOG_DIR" \
                 > "${LOG_DIR}/suricata_stdout.log" 2>&1 &
         else
             echo "[ARCHIVIRT] Starting Suricata IDS (AF-PACKET, iface=$IFACE) for $SCENARIO ..."
@@ -58,7 +57,21 @@ case $ACTION in
         SURICATA_PID=$!
         echo $SURICATA_PID > "$PID_FILE"
 
-        # --- Deterministic wait: poll log for AFP ready message --------------
+        # --- Deterministic startup check -------------------------------------
+        if [ "$MODE" = "ips" ]; then
+            echo "[ARCHIVIRT] Waiting for Suricata IPS startup..."
+            sleep 3
+            if ! kill -0 "$SURICATA_PID" 2>/dev/null; then
+                echo "[ARCHIVIRT] ERROR: Suricata IPS process died during startup"
+                tail -30 "${LOG_DIR}/suricata_stdout.log"
+                exit 1
+            fi
+            echo "[ARCHIVIRT] Suricata IPS process is running."
+            echo "[ARCHIVIRT] PID=$SURICATA_PID mode=$MODE logs=$LOG_DIR"
+            exit 0
+        fi
+
+        # --- Deterministic IDS startup check --------------------------------
         echo "[ARCHIVIRT] Waiting for AFP capture threads (max ${AFP_TIMEOUT}s)..."
         WAITED=0
         while [ $WAITED -lt $AFP_TIMEOUT ]; do
@@ -98,8 +111,8 @@ case $ACTION in
             pkill -9 -f suricata || true
         fi
 
-        # Remove NFQ iptables rule if IPS mode was active
-        iptables -D FORWARD -j NFQUEUE --queue-num $NFQ_QUEUE 2>/dev/null || true
+        # NFQUEUE rules are managed by Ansible and are intentionally
+        # not removed by this scenario helper.
 
         ALERTS=$(grep -c '"event_type":"alert"' "${LOG_DIR}/eve.json" 2>/dev/null || echo 0)
         echo "[ARCHIVIRT] Suricata stopped. Mode=$MODE Alerts=$ALERTS"

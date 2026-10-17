@@ -1,0 +1,6 @@
+scenario,runs_valid,blocked_runs,blocking_rate,block_latency_ms_mean
+SCN-001,10,10,1.0,105.2
+SCN-002,10,10,1.0,217.4
+SCN-003,10,10,1.0,309.2
+SCN-004,10,10,1.0,164.3
+SCN-005,10,0,0.0,

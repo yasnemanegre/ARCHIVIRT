@@ -34,7 +34,7 @@ output "ids_engine" {
 
 output "lab_summary" {
   description = "Full lab network summary"
-  value = <<-EOF
+  value       = <<-EOF
     ════════════════════════════════════════════
     ARCHIVIRT Lab Summary
     ════════════════════════════════════════════

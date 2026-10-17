@@ -52,3 +52,20 @@ packages/
 *.bak
 ansible/vars/secrets.yml
 terraform/terraform.tfvars
+
+# Transient campaign_v1 iteration backups
+*.bak-*
+
+# campaign_v1 engine config/schema/manifest (JSON must be tracked)
+!campaign_v1/**/*.json
+
+# --- Article 2 scientific dataset -------------------------------------------
+# The *.json / *.csv rules above are global; re-include the Article-2 records
+# and deliverables so metric traceability/reproducibility is committed.
+!results/campaign-v1/
+!results/campaign-v1/**/*.json
+!results/campaign-v1/**/*.csv
+# ...but keep the bulky packet-level raw evidence OUT of git (retained locally,
+# referenced from RESULTS.md). These re-exclusions must follow the negations.
+results/campaign-v1/**/eve.json
+results/campaign-v1/**/*_raw.txt

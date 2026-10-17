@@ -1,0 +1,6 @@
+metric,unit,baseline,ids,ips
+cpu_percent,%,NOT_APPLICABLE(no engine),13.166,14.454
+rss_mb,MB,NOT_APPLICABLE(no engine),50.142,44.308
+captured_pps,pps,559.433,560.57,NOT_APPLICABLE(inline path not mirrored)
+captured_mbps,Mbps,0.327,0.327,NOT_APPLICABLE(inline path not mirrored)
+captured_drops,pkts,0.0,0.0,NOT_APPLICABLE(inline path not mirrored)

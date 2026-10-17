@@ -1,0 +1,14 @@
+# ARCHIVIRT Article 2 — discriminative IDS signature set (controlled lab).
+# One signature per attack scenario, engineered so that the SCN-005 benign
+# control (a few HTTP GETs/second to one port) stays UNDER every threshold and
+# triggers NONE of them. This defines the experimental ground-truth mapping
+# scenario -> expected SID. Loaded EXCLUSIVELY by the engine via `suricata -S`.
+#
+# SCN-001 Nmap SYN scan  : many SYNs from one source across ports (>=100 / 5s)
+# SCN-002 Hydra SSH      : many SYNs to tcp/22 from one source (>=5 / 10s)
+# SCN-003 SQLMap         : HTTP requests carrying the sqlmap User-Agent
+# SCN-004 Slowloris      : many SYNs to tcp/80 from one source (>=50 / 10s)
+alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT SCN-001 Nmap SYN scan"; flow:to_server; flags:S; detection_filter:track by_src, count 100, seconds 5; sid:2000001; rev:2;)
+alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SCN-002 SSH brute-force"; flow:to_server; flags:S; detection_filter:track by_src, count 5, seconds 10; sid:2000002; rev:2;)
+alert http any any -> $HOME_NET any (msg:"ARCHIVIRT SCN-003 SQLMap tool"; flow:to_server; http.user_agent; content:"sqlmap"; nocase; sid:2000003; rev:2;)
+alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SCN-004 Slowloris HTTP DoS"; flow:to_server; flags:S; detection_filter:track by_src, count 50, seconds 10; sid:2000004; rev:2;)

@@ -1,0 +1,6 @@
+scenario,ground_truth,description,protocol,trigger
+SCN-001,attack,Nmap SYN scan,tcp,SYN rate >=100/5s by src
+SCN-002,attack,SSH connection-rate attack pattern,tcp/22,SYN rate >=5/10s by src
+SCN-003,attack,SQLMap (tool User-Agent),http,User-Agent contains 'sqlmap'
+SCN-004,attack,Slowloris HTTP DoS,tcp/80,SYN rate >=50/10s by src
+SCN-005,benign,Benign HTTP (negative control),http,none (control)

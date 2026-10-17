@@ -1,0 +1,6 @@
+scenario,ground_truth,runs,valid,invalid,prereq_missing,detection_rate,alerts_mean,det_latency_ms_mean
+SCN-001,attack,3,0,3,0,NOT_APPLICABLE,,
+SCN-002,attack,3,0,3,0,NOT_APPLICABLE,,
+SCN-003,attack,3,0,3,0,NOT_APPLICABLE,,
+SCN-004,attack,3,0,3,0,NOT_APPLICABLE,,
+SCN-005,benign,3,0,3,0,NOT_APPLICABLE,,

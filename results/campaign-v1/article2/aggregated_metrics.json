@@ -1,0 +1,1721 @@
+{
+  "n_runs_total": 115,
+  "campaigns": [
+    "results/campaign-v1/ARTICLE-20261008T163655Z",
+    "results/campaign-v1/ARTICLE-20261008T165327Z",
+    "results/campaign-v1/ARTICLE-20261008T165841Z"
+  ],
+  "modes": {
+    "ids": {
+      "per_scenario": {
+        "SCN-001": {
+          "ground_truth": "attack",
+          "expected_sid": 2000001,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TP": 10
+          },
+          "detection_rate": 1.0,
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 10,
+            "mean": 6044,
+            "median": 6045.0,
+            "std": 2.828,
+            "min": 6036,
+            "max": 6045,
+            "ci95": [
+              6041.977,
+              6046.023
+            ],
+            "cv": 0.0005
+          },
+          "detection_latency_ms": {
+            "n": 10,
+            "mean": 105.7,
+            "median": 105.0,
+            "std": 4.855,
+            "min": 100,
+            "max": 117,
+            "ci95": [
+              102.227,
+              109.173
+            ],
+            "cv": 0.0459
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 14.869,
+            "median": 15.025,
+            "std": 1.114,
+            "min": 12.3,
+            "max": 16.44,
+            "ci95": [
+              14.072,
+              15.666
+            ],
+            "cv": 0.0749
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 47.96,
+            "median": 47.45,
+            "std": 0.932,
+            "min": 47.1,
+            "max": 49.4,
+            "ci95": [
+              47.293,
+              48.627
+            ],
+            "cv": 0.0194
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 1978.53,
+            "median": 1979.05,
+            "std": 10.555,
+            "min": 1953.7,
+            "max": 1991.1,
+            "ci95": [
+              1970.979,
+              1986.081
+            ],
+            "cv": 0.0053
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.897,
+            "median": 0.897,
+            "std": 0.005,
+            "min": 0.886,
+            "max": 0.903,
+            "ci95": [
+              0.894,
+              0.901
+            ],
+            "cv": 0.0053
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-002": {
+          "ground_truth": "attack",
+          "expected_sid": 2000002,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TP": 10
+          },
+          "detection_rate": 1.0,
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 10,
+            "mean": 37,
+            "median": 37.0,
+            "std": 0.0,
+            "min": 37,
+            "max": 37,
+            "ci95": [
+              37.0,
+              37.0
+            ],
+            "cv": 0.0
+          },
+          "detection_latency_ms": {
+            "n": 10,
+            "mean": 175.5,
+            "median": 169.5,
+            "std": 19.386,
+            "min": 157,
+            "max": 213,
+            "ci95": [
+              161.632,
+              189.368
+            ],
+            "cv": 0.1105
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 13.246,
+            "median": 13.425,
+            "std": 0.829,
+            "min": 11.77,
+            "max": 14.25,
+            "ci95": [
+              12.653,
+              13.839
+            ],
+            "cv": 0.0626
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 49.81,
+            "median": 50.05,
+            "std": 0.601,
+            "min": 48.2,
+            "max": 50.2,
+            "ci95": [
+              49.38,
+              50.24
+            ],
+            "cv": 0.0121
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 73.39,
+            "median": 74.15,
+            "std": 1.325,
+            "min": 71.2,
+            "max": 74.8,
+            "ci95": [
+              72.442,
+              74.338
+            ],
+            "cv": 0.0181
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.059,
+            "median": 0.059,
+            "std": 0.001,
+            "min": 0.058,
+            "max": 0.06,
+            "ci95": [
+              0.059,
+              0.06
+            ],
+            "cv": 0.0112
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-003": {
+          "ground_truth": "attack",
+          "expected_sid": 2000003,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TP": 10
+          },
+          "detection_rate": 1.0,
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 10,
+            "mean": 60,
+            "median": 60.0,
+            "std": 0.0,
+            "min": 60,
+            "max": 60,
+            "ci95": [
+              60.0,
+              60.0
+            ],
+            "cv": 0.0
+          },
+          "detection_latency_ms": {
+            "n": 10,
+            "mean": 310.6,
+            "median": 313.0,
+            "std": 10.895,
+            "min": 293,
+            "max": 325,
+            "ci95": [
+              302.806,
+              318.394
+            ],
+            "cv": 0.0351
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 13.545,
+            "median": 13.485,
+            "std": 0.632,
+            "min": 12.71,
+            "max": 14.53,
+            "ci95": [
+              13.093,
+              13.997
+            ],
+            "cv": 0.0467
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 50.05,
+            "median": 50.05,
+            "std": 0.172,
+            "min": 49.7,
+            "max": 50.3,
+            "ci95": [
+              49.927,
+              50.173
+            ],
+            "cv": 0.0034
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 121.25,
+            "median": 121.15,
+            "std": 0.855,
+            "min": 119.6,
+            "max": 122.6,
+            "ci95": [
+              120.638,
+              121.862
+            ],
+            "cv": 0.0071
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.126,
+            "median": 0.126,
+            "std": 0.001,
+            "min": 0.126,
+            "max": 0.128,
+            "ci95": [
+              0.126,
+              0.127
+            ],
+            "cv": 0.0052
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-004": {
+          "ground_truth": "attack",
+          "expected_sid": 2000004,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TP": 10
+          },
+          "detection_rate": 1.0,
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 10,
+            "mean": 450,
+            "median": 450.0,
+            "std": 0.0,
+            "min": 450,
+            "max": 450,
+            "ci95": [
+              450.0,
+              450.0
+            ],
+            "cv": 0.0
+          },
+          "detection_latency_ms": {
+            "n": 10,
+            "mean": 114.7,
+            "median": 116.0,
+            "std": 10.307,
+            "min": 97,
+            "max": 133,
+            "ci95": [
+              107.327,
+              122.073
+            ],
+            "cv": 0.0899
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 12.135,
+            "median": 12.17,
+            "std": 0.299,
+            "min": 11.72,
+            "max": 12.55,
+            "ci95": [
+              11.921,
+              12.349
+            ],
+            "cv": 0.0246
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 52.89,
+            "median": 53.3,
+            "std": 0.787,
+            "min": 51.6,
+            "max": 53.6,
+            "ci95": [
+              52.327,
+              53.453
+            ],
+            "cv": 0.0149
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 608.41,
+            "median": 612.5,
+            "std": 16.623,
+            "min": 572.8,
+            "max": 624.1,
+            "ci95": [
+              596.519,
+              620.301
+            ],
+            "cv": 0.0273
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.406,
+            "median": 0.407,
+            "std": 0.008,
+            "min": 0.389,
+            "max": 0.413,
+            "ci95": [
+              0.4,
+              0.411
+            ],
+            "cv": 0.0197
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-005": {
+          "ground_truth": "benign",
+          "expected_sid": null,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TN": 10
+          },
+          "detection_rate": "NOT_APPLICABLE",
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 10,
+            "mean": 0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0,
+            "max": 0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "detection_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 12.036,
+            "median": 12.12,
+            "std": 0.283,
+            "min": 11.43,
+            "max": 12.27,
+            "ci95": [
+              11.833,
+              12.239
+            ],
+            "cv": 0.0235
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 50.0,
+            "median": 50.0,
+            "std": 0.133,
+            "min": 49.8,
+            "max": 50.2,
+            "ci95": [
+              49.905,
+              50.095
+            ],
+            "cv": 0.0027
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 21.27,
+            "median": 21.25,
+            "std": 0.183,
+            "min": 21.1,
+            "max": 21.7,
+            "ci95": [
+              21.139,
+              21.401
+            ],
+            "cv": 0.0086
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.148,
+            "median": 0.148,
+            "std": 0.0,
+            "min": 0.147,
+            "max": 0.148,
+            "ci95": [
+              0.148,
+              0.148
+            ],
+            "cv": 0.0007
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        }
+      },
+      "derived_metrics": {
+        "confusion": {
+          "TP": 40,
+          "FP": 0,
+          "FN": 0,
+          "TN": 10
+        },
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall_TPR": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      }
+    },
+    "baseline": {
+      "per_scenario": {
+        "SCN-001": {
+          "ground_truth": "attack",
+          "expected_sid": 2000001,
+          "runs_total": 3,
+          "runs_valid": 0,
+          "runs_invalid": 3,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "FN": 3
+          },
+          "detection_rate": "NOT_APPLICABLE",
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "detection_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "rss_mb": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "captured_pps": {
+            "n": 3,
+            "mean": 1974.5,
+            "median": 1969.8,
+            "std": 12.814,
+            "min": 1964.7,
+            "max": 1989.0,
+            "ci95": [
+              1942.669,
+              2006.331
+            ],
+            "cv": 0.0065
+          },
+          "captured_mbps": {
+            "n": 3,
+            "mean": 0.895,
+            "median": 0.893,
+            "std": 0.006,
+            "min": 0.891,
+            "max": 0.902,
+            "ci95": [
+              0.88,
+              0.91
+            ],
+            "cv": 0.0067
+          },
+          "captured_drops": {
+            "n": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-002": {
+          "ground_truth": "attack",
+          "expected_sid": 2000002,
+          "runs_total": 3,
+          "runs_valid": 0,
+          "runs_invalid": 3,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "FN": 3
+          },
+          "detection_rate": "NOT_APPLICABLE",
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "detection_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "rss_mb": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "captured_pps": {
+            "n": 3,
+            "mean": 73.2,
+            "median": 73.4,
+            "std": 1.609,
+            "min": 71.5,
+            "max": 74.7,
+            "ci95": [
+              69.202,
+              77.198
+            ],
+            "cv": 0.022
+          },
+          "captured_mbps": {
+            "n": 3,
+            "mean": 0.059,
+            "median": 0.059,
+            "std": 0.001,
+            "min": 0.058,
+            "max": 0.06,
+            "ci95": [
+              0.057,
+              0.061
+            ],
+            "cv": 0.0128
+          },
+          "captured_drops": {
+            "n": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-003": {
+          "ground_truth": "attack",
+          "expected_sid": 2000003,
+          "runs_total": 3,
+          "runs_valid": 0,
+          "runs_invalid": 3,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "FN": 3
+          },
+          "detection_rate": "NOT_APPLICABLE",
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "detection_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "rss_mb": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "captured_pps": {
+            "n": 3,
+            "mean": 119.867,
+            "median": 119.9,
+            "std": 1.15,
+            "min": 118.7,
+            "max": 121.0,
+            "ci95": [
+              117.009,
+              122.724
+            ],
+            "cv": 0.0096
+          },
+          "captured_mbps": {
+            "n": 3,
+            "mean": 0.126,
+            "median": 0.126,
+            "std": 0.001,
+            "min": 0.125,
+            "max": 0.126,
+            "ci95": [
+              0.124,
+              0.127
+            ],
+            "cv": 0.0052
+          },
+          "captured_drops": {
+            "n": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-004": {
+          "ground_truth": "attack",
+          "expected_sid": 2000004,
+          "runs_total": 3,
+          "runs_valid": 0,
+          "runs_invalid": 3,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "FN": 3
+          },
+          "detection_rate": "NOT_APPLICABLE",
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "detection_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "rss_mb": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "captured_pps": {
+            "n": 3,
+            "mean": 608.267,
+            "median": 606.2,
+            "std": 9.864,
+            "min": 599.6,
+            "max": 619.0,
+            "ci95": [
+              583.764,
+              632.77
+            ],
+            "cv": 0.0162
+          },
+          "captured_mbps": {
+            "n": 3,
+            "mean": 0.406,
+            "median": 0.405,
+            "std": 0.005,
+            "min": 0.401,
+            "max": 0.411,
+            "ci95": [
+              0.394,
+              0.418
+            ],
+            "cv": 0.0118
+          },
+          "captured_drops": {
+            "n": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-005": {
+          "ground_truth": "benign",
+          "expected_sid": null,
+          "runs_total": 3,
+          "runs_valid": 0,
+          "runs_invalid": 3,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TN": 3
+          },
+          "detection_rate": "NOT_APPLICABLE",
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "detection_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "rss_mb": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "captured_pps": {
+            "n": 3,
+            "mean": 21.333,
+            "median": 21.3,
+            "std": 0.153,
+            "min": 21.2,
+            "max": 21.5,
+            "ci95": [
+              20.954,
+              21.713
+            ],
+            "cv": 0.0072
+          },
+          "captured_mbps": {
+            "n": 3,
+            "mean": 0.148,
+            "median": 0.148,
+            "std": 0.0,
+            "min": 0.148,
+            "max": 0.148,
+            "ci95": [
+              0.148,
+              0.148
+            ],
+            "cv": 0.0
+          },
+          "captured_drops": {
+            "n": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        }
+      },
+      "derived_metrics": {
+        "confusion": {
+          "TP": 0,
+          "FP": 0,
+          "FN": 0,
+          "TN": 0
+        },
+        "accuracy": "NOT_AVAILABLE",
+        "precision": "NOT_AVAILABLE",
+        "recall_TPR": "NOT_AVAILABLE",
+        "f1": "NOT_AVAILABLE",
+        "fpr": "NOT_AVAILABLE",
+        "fnr": "NOT_AVAILABLE"
+      }
+    },
+    "ips": {
+      "per_scenario": {
+        "SCN-001": {
+          "ground_truth": "attack",
+          "expected_sid": 2100001,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TP": 10
+          },
+          "detection_rate": 1.0,
+          "blocked_runs": 10,
+          "alert_count": {
+            "n": 10,
+            "mean": 15948.7,
+            "median": 17680.0,
+            "std": 3224.572,
+            "min": 11328,
+            "max": 18725,
+            "ci95": [
+              13641.98,
+              18255.42
+            ],
+            "cv": 0.2022
+          },
+          "detection_latency_ms": {
+            "n": 10,
+            "mean": 105.2,
+            "median": 104.5,
+            "std": 4.849,
+            "min": 98,
+            "max": 116,
+            "ci95": [
+              101.731,
+              108.669
+            ],
+            "cv": 0.0461
+          },
+          "blocking_latency_ms": {
+            "n": 10,
+            "mean": 105.2,
+            "median": 104.5,
+            "std": 4.849,
+            "min": 98,
+            "max": 116,
+            "ci95": [
+              101.731,
+              108.669
+            ],
+            "cv": 0.0461
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 19.496,
+            "median": 19.69,
+            "std": 1.376,
+            "min": 17.52,
+            "max": 21.47,
+            "ci95": [
+              18.512,
+              20.48
+            ],
+            "cv": 0.0706
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 50.88,
+            "median": 51.7,
+            "std": 1.949,
+            "min": 48.2,
+            "max": 52.8,
+            "ci95": [
+              49.486,
+              52.274
+            ],
+            "cv": 0.0383
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-002": {
+          "ground_truth": "attack",
+          "expected_sid": 2100002,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TP": 10
+          },
+          "detection_rate": 1.0,
+          "blocked_runs": 10,
+          "alert_count": {
+            "n": 10,
+            "mean": 20,
+            "median": 20.0,
+            "std": 0.0,
+            "min": 20,
+            "max": 20,
+            "ci95": [
+              20.0,
+              20.0
+            ],
+            "cv": 0.0
+          },
+          "detection_latency_ms": {
+            "n": 10,
+            "mean": 217.4,
+            "median": 221.5,
+            "std": 25.163,
+            "min": 182,
+            "max": 259,
+            "ci95": [
+              199.4,
+              235.4
+            ],
+            "cv": 0.1157
+          },
+          "blocking_latency_ms": {
+            "n": 10,
+            "mean": 217.4,
+            "median": 221.5,
+            "std": 25.163,
+            "min": 182,
+            "max": 259,
+            "ci95": [
+              199.4,
+              235.4
+            ],
+            "cv": 0.1157
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 13.063,
+            "median": 13.09,
+            "std": 0.618,
+            "min": 12.22,
+            "max": 14.11,
+            "ci95": [
+              12.621,
+              13.505
+            ],
+            "cv": 0.0473
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 41.57,
+            "median": 41.65,
+            "std": 0.231,
+            "min": 41.2,
+            "max": 41.9,
+            "ci95": [
+              41.405,
+              41.735
+            ],
+            "cv": 0.0056
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-003": {
+          "ground_truth": "attack",
+          "expected_sid": 2100003,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TP": 10
+          },
+          "detection_rate": 1.0,
+          "blocked_runs": 10,
+          "alert_count": {
+            "n": 10,
+            "mean": 3,
+            "median": 3.0,
+            "std": 0.0,
+            "min": 3,
+            "max": 3,
+            "ci95": [
+              3.0,
+              3.0
+            ],
+            "cv": 0.0
+          },
+          "detection_latency_ms": {
+            "n": 10,
+            "mean": 309.2,
+            "median": 310.5,
+            "std": 11.351,
+            "min": 289,
+            "max": 325,
+            "ci95": [
+              301.08,
+              317.32
+            ],
+            "cv": 0.0367
+          },
+          "blocking_latency_ms": {
+            "n": 10,
+            "mean": 309.2,
+            "median": 310.5,
+            "std": 11.351,
+            "min": 289,
+            "max": 325,
+            "ci95": [
+              301.08,
+              317.32
+            ],
+            "cv": 0.0367
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 12.853,
+            "median": 12.83,
+            "std": 0.345,
+            "min": 12.44,
+            "max": 13.36,
+            "ci95": [
+              12.606,
+              13.1
+            ],
+            "cv": 0.0269
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 41.72,
+            "median": 41.8,
+            "std": 0.187,
+            "min": 41.3,
+            "max": 41.9,
+            "ci95": [
+              41.586,
+              41.854
+            ],
+            "cv": 0.0045
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-004": {
+          "ground_truth": "attack",
+          "expected_sid": 2100004,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TP": 10
+          },
+          "detection_rate": 1.0,
+          "blocked_runs": 10,
+          "alert_count": {
+            "n": 10,
+            "mean": 15,
+            "median": 15.0,
+            "std": 0.0,
+            "min": 15,
+            "max": 15,
+            "ci95": [
+              15.0,
+              15.0
+            ],
+            "cv": 0.0
+          },
+          "detection_latency_ms": {
+            "n": 10,
+            "mean": 164.3,
+            "median": 168.0,
+            "std": 16.76,
+            "min": 138,
+            "max": 192,
+            "ci95": [
+              152.311,
+              176.289
+            ],
+            "cv": 0.102
+          },
+          "blocking_latency_ms": {
+            "n": 10,
+            "mean": 164.3,
+            "median": 168.0,
+            "std": 16.76,
+            "min": 138,
+            "max": 192,
+            "ci95": [
+              152.311,
+              176.289
+            ],
+            "cv": 0.102
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 13.403,
+            "median": 13.405,
+            "std": 0.234,
+            "min": 12.93,
+            "max": 13.68,
+            "ci95": [
+              13.235,
+              13.571
+            ],
+            "cv": 0.0175
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 44.25,
+            "median": 44.3,
+            "std": 0.288,
+            "min": 43.7,
+            "max": 44.6,
+            "ci95": [
+              44.044,
+              44.456
+            ],
+            "cv": 0.0065
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        },
+        "SCN-005": {
+          "ground_truth": "benign",
+          "expected_sid": null,
+          "runs_total": 10,
+          "runs_valid": 10,
+          "runs_invalid": 0,
+          "runs_prereq_missing": 0,
+          "classification_tally": {
+            "TN": 10
+          },
+          "detection_rate": "NOT_APPLICABLE",
+          "blocked_runs": 0,
+          "alert_count": {
+            "n": 10,
+            "mean": 0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0,
+            "max": 0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "detection_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "blocking_latency_ms": {
+            "n": 0,
+            "mean": null,
+            "median": null,
+            "std": null,
+            "min": null,
+            "max": null,
+            "ci95": null,
+            "cv": null
+          },
+          "cpu_percent": {
+            "n": 10,
+            "mean": 13.453,
+            "median": 13.6,
+            "std": 0.319,
+            "min": 12.97,
+            "max": 13.84,
+            "ci95": [
+              13.225,
+              13.681
+            ],
+            "cv": 0.0237
+          },
+          "rss_mb": {
+            "n": 10,
+            "mean": 43.12,
+            "median": 43.1,
+            "std": 0.103,
+            "min": 43.0,
+            "max": 43.3,
+            "ci95": [
+              43.046,
+              43.194
+            ],
+            "cv": 0.0024
+          },
+          "captured_pps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_mbps": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          },
+          "captured_drops": {
+            "n": 10,
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "cv": null
+          }
+        }
+      },
+      "derived_metrics": {
+        "confusion": {
+          "TP": 40,
+          "FP": 0,
+          "FN": 0,
+          "TN": 10
+        },
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall_TPR": 1.0,
+        "f1": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      }
+    }
+  },
+  "signature_note": "Metrics reflect the controlled, discriminative ARCHIVIRT Article-2 signature set (4 threshold-based signatures), not a general property of Suricata. Run-level confusion: attack runs -> TP/FN by expected SID; benign runs -> TN/FP by any attack SID. Baseline is INVALID-by-design for detection."
+}

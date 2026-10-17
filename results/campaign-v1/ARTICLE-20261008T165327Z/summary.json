@@ -1,0 +1,47 @@
+{
+  "baseline:SCN-004": {
+    "runs_total": 3,
+    "runs_valid": 0,
+    "runs_invalid": 3,
+    "runs_prerequisite_missing": 0,
+    "detections": 0,
+    "blocked": 0,
+    "alerts": 0
+  },
+  "baseline:SCN-005": {
+    "runs_total": 3,
+    "runs_valid": 0,
+    "runs_invalid": 3,
+    "runs_prerequisite_missing": 0,
+    "detections": 0,
+    "blocked": 0,
+    "alerts": 0
+  },
+  "baseline:SCN-002": {
+    "runs_total": 3,
+    "runs_valid": 0,
+    "runs_invalid": 3,
+    "runs_prerequisite_missing": 0,
+    "detections": 0,
+    "blocked": 0,
+    "alerts": 0
+  },
+  "baseline:SCN-003": {
+    "runs_total": 3,
+    "runs_valid": 0,
+    "runs_invalid": 3,
+    "runs_prerequisite_missing": 0,
+    "detections": 0,
+    "blocked": 0,
+    "alerts": 0
+  },
+  "baseline:SCN-001": {
+    "runs_total": 3,
+    "runs_valid": 0,
+    "runs_invalid": 3,
+    "runs_prerequisite_missing": 0,
+    "detections": 0,
+    "blocked": 0,
+    "alerts": 0
+  }
+}

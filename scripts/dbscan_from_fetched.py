@@ -72,10 +72,11 @@ def parse_suricata(line):
     ]
 
 def run_dbscan(events, name):
-    print(f"[DBSCAN] {name}: {len(events)} events before sampling")
-    if len(events) == 0:
-        return {"clusters": 0, "anomalies": 0, "anomaly_rate": 0.0}
-    if len(events) > MAX_EVENTS:
+    raw_count = len(events)
+    print(f"[DBSCAN] {name}: {raw_count} events before sampling")
+    if raw_count == 0:
+        return {"events": 0, "clusters": 0, "anomalies": 0, "anomaly_rate": 0.0}
+    if raw_count > MAX_EVENTS:
         events = random.sample(events, MAX_EVENTS)
         print(f"  Sampled to {MAX_EVENTS}")
     X = np.array(events)
@@ -86,7 +87,7 @@ def run_dbscan(events, name):
     n_noise = list(labels).count(-1)
     rate = round(n_noise / len(events) * 100, 2) if len(events) > 0 else 0.0
     print(f"  Clusters: {n_clusters}, Anomalies: {n_noise}, Rate: {rate}%")
-    return {"clusters": n_clusters, "anomalies": n_noise, "anomaly_rate": rate}
+    return {"events": raw_count, "clusters": n_clusters, "anomalies": n_noise, "anomaly_rate": rate}
 
 # Snort
 import re as _re

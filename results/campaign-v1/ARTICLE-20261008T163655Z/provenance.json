@@ -1,0 +1,34 @@
+{
+  "campaign_id": "ARTICLE-20261008T163655Z",
+  "engine": "suricata-6.0.4",
+  "mode": "ids",
+  "git_commit": "1a64170abdc1b3a48763ccbe954f43c483e89970",
+  "git_dirty": true,
+  "terraform": "Terraform v1.16.5",
+  "ansible": "ansible [core 2.17.14]",
+  "host_facts": {
+    "suricata_version": "6.0.4",
+    "snort3_version": "ABSENT",
+    "libdaq3_version": "ABSENT",
+    "suricata_rules_archivirt_file": "PRESENT",
+    "nmap_version": "7.80",
+    "hydra_version": "v9.2",
+    "sqlmap_version": "1.6.4#stable",
+    "python3_version": "3.10.12",
+    "curl_version": "7.81.0",
+    "rockyou_file": "PRESENT",
+    "slowloris_file": "PRESENT"
+  },
+  "artifact_sha256": {
+    "campaign_v1/scenarios/SCN-003-sqlmap.sh": "7a0f2f95e8453a46b87dd576336338de8bcc9846b75b119ae5dced070fc64e5b",
+    "campaign_v1/scenarios/SCN-005-benign.sh": "c185a32468dddc5cb20aa5c828a5f32aa74f85f00976610a261f52a9af4e3db1",
+    "campaign_v1/scenarios/SCN-002-hydra.sh": "2bdf9904c77116868ad77d4418adfb0a9dd1c47ca4e389da1a09eadf0d6fa3b5",
+    "campaign_v1/scenarios/SCN-004-slowloris.sh": "5539e3232d3eea681700c9e5c10a70df656c6ed41b5447827640a00c8dac79eb",
+    "campaign_v1/scenarios/SCN-001-nmap.sh": "931d8ddf7e68d22e78f831c9ad75f52b7bae2ee354feff09346595aa529da2c0",
+    "campaign_v1/engines/stop.sh": "b57d75112e7a6583ec24d44d02ca7a6a67348a5cdac9954a30c9bc7e1137adf3",
+    "campaign_v1/engines/snort3.sh": "35188ecab54acf1b56d6b999acb1a86fe4fa9ea71cde0a1971265f062e3a9ac0",
+    "campaign_v1/engines/suricata.sh": "27d8f471ed1ee9a8b355bb0b727b24ae78370f503cb3f2f3dd4946e052d7d059",
+    "configs/suricata/suricata.yaml": "38af079b77b9bdfb25fe0a90581b83c3f250e4d0335e5ec3b7bf5269ce4ff53a",
+    "campaign_v1/manifest/offline_manifest.json": "2c10bea9fd372350bef6cc6ef5e3b3eae27606f8d7bad9569d5fd9dacc9ed753"
+  }
+}

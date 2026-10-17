@@ -1,0 +1,8 @@
+# ARCHIVIRT campaign_v1 analysis dependencies (Article 2).
+# Versions observed in the development environment on 2026-10-08.
+# Recorded for a future Offline Artifact Set (Phase 2).
+numpy==2.*        # present in env
+scipy==1.*        # CI95 (Student t)
+matplotlib==3.10.9  # figures (installed during Article-2 dev phase)
+# Infrastructure tooling (system-provided, for reference):
+# ansible-core==2.17.14 ; Suricata 6.0.4 ; Terraform 1.16.5 ; Python 3.10.12

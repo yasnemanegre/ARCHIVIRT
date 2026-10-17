@@ -1,0 +1,11 @@
+wall_ns=1791477611108491910
+clk_tck=100
+suricata_pid=13536
+cpu_jiffies=20
+rss_kb=45400
+ens6_rx_packets=98431
+ens6_rx_bytes=32415601
+ens6_rx_dropped=0
+ens7_rx_packets=95663
+ens7_rx_bytes=20842654
+ens7_rx_dropped=0

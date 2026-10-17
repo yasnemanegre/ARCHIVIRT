@@ -1,0 +1,29 @@
+{
+  "experiment_id": "ARTICLE-20261008T163655Z",
+  "run_id": "SCN-001-RUN-010",
+  "engine": "suricata-6.0.4",
+  "mode": "ids",
+  "scenario": "SCN-001",
+  "attack_started": true,
+  "attack_completed": true,
+  "traffic_observed": true,
+  "event_collected": true,
+  "detection_status": true,
+  "blocking_status": null,
+  "ground_truth": "attack",
+  "expected_sid": 2000001,
+  "fired_attack_sids": [
+    2000001,
+    2000002
+  ],
+  "classification": "TP",
+  "alert_count": 6045,
+  "attack_start_timestamp": "2026-10-08T16:38:51.117048077Z",
+  "attack_end_timestamp": "2026-10-08T16:38:51.393088809Z",
+  "first_alert_timestamp": "2026-10-08T16:38:51.223592+0000",
+  "first_block_timestamp": null,
+  "detection_latency_ms": 106,
+  "blocking_latency_ms": null,
+  "run_status": "VALID",
+  "invalid_reason": ""
+}

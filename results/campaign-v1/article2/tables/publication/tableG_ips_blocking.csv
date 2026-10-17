@@ -1,0 +1,6 @@
+scenario,runs_valid,blocked_runs,blocking_rate,unit
+SCN-001,10,10,1.0,runs
+SCN-002,10,10,1.0,runs
+SCN-003,10,10,1.0,runs
+SCN-004,10,10,1.0,runs
+SCN-005,10,0,0.0,runs

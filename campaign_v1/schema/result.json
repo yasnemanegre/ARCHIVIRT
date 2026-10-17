@@ -1,0 +1,22 @@
+{
+  "experiment_id": "",
+  "run_id": "",
+  "engine": "",
+  "mode": "",
+  "scenario": "",
+  "attack_started": false,
+  "attack_completed": false,
+  "traffic_observed": null,
+  "event_collected": false,
+  "detection_status": false,
+  "blocking_status": null,
+  "alert_count": 0,
+  "attack_start_timestamp": null,
+  "attack_end_timestamp": null,
+  "first_alert_timestamp": null,
+  "first_block_timestamp": null,
+  "detection_latency_ms": null,
+  "blocking_latency_ms": null,
+  "run_status": "INVALID",
+  "invalid_reason": ""
+}

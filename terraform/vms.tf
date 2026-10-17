@@ -1,5 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-# ARCHIVIRT — Virtual Machine Definitions
 # Author: Yasnemanegre SAWADOGO (PhD Student, SPbSUITD)
 # ─────────────────────────────────────────────────────────────
 
@@ -14,11 +12,10 @@ locals {
         groups: sudo
         shell: /bin/bash
         sudo: ['ALL=(ALL) NOPASSWD:ALL']
-        passwd: ${var.ubuntu_password_hash}
-        lock_passwd: false
+        lock_passwd: true
         ssh_authorized_keys:
           - ${local.ssh_pub_key}
-    ssh_pwauth: true
+    ssh_pwauth: false
     chpasswd:
       expire: false
     package_update: false
@@ -38,7 +35,7 @@ resource "libvirt_cloudinit_disk" "manager" {
   name = "archivirt-manager-cloudinit.iso"
   pool = var.storage_pool
 
-  user_data = <<-EOF
+  user_data      = <<-EOF
     #cloud-config
     hostname: archivirt-manager
     ${local.cloud_init_common}
@@ -72,12 +69,10 @@ resource "libvirt_domain" "manager" {
 
   network_interface {
     network_id = libvirt_network.manager.id
-    addresses  = [var.ip_manager]
   }
   # Secondary interface on ovs-monitor for Telegraf → InfluxDB
   network_interface {
-    network_id = libvirt_network.monitor.id
-    addresses  = ["10.0.3.254"]
+    bridge = "ovs-monitor"
   }
 
   disk {
@@ -105,7 +100,7 @@ resource "libvirt_cloudinit_disk" "attacker" {
   name = "archivirt-attacker-cloudinit.iso"
   pool = var.storage_pool
 
-  user_data = <<-EOF
+  user_data      = <<-EOF
     #cloud-config
     hostname: archivirt-attacker
     ${local.cloud_init_common}
@@ -118,8 +113,6 @@ resource "libvirt_cloudinit_disk" "attacker" {
       ens3:
         addresses: [${var.ip_attacker}/24]
         gateway4: 10.0.4.1
-      eth1:
-        addresses: [10.0.2.100/24]
   EOF
 }
 
@@ -138,14 +131,9 @@ resource "libvirt_domain" "attacker" {
   cloudinit = libvirt_cloudinit_disk.attacker.id
 
   network_interface {
-    network_id = libvirt_network.attack.id
-    addresses  = [var.ip_attacker]
+    bridge = "ovs-attack"
   }
 
-  # Secondary interface on target network for direct attack reach
-  network_interface {
-    network_id = libvirt_network.targets.id
-  }
 
   disk {
     volume_id = libvirt_volume.attacker_disk.id
@@ -167,7 +155,7 @@ resource "libvirt_cloudinit_disk" "monitor" {
   name = "archivirt-monitor-cloudinit.iso"
   pool = var.storage_pool
 
-  user_data = <<-EOF
+  user_data      = <<-EOF
     #cloud-config
     hostname: archivirt-monitor-ids
     ${local.cloud_init_common}
@@ -180,7 +168,7 @@ resource "libvirt_cloudinit_disk" "monitor" {
       ens3:
         addresses: [${var.ip_monitor}/24]
         gateway4: 10.0.3.1
-      eth1:
+      ens4:
         addresses: [10.0.2.200/24]
       ens5:
         addresses: [10.0.4.200/24]
@@ -198,25 +186,41 @@ resource "libvirt_domain" "monitor" {
   name   = "archivirt-monitor-ids"
   vcpu   = var.vm_vcpu
   memory = var.vm_ram_monitor
+
   cpu {
     mode = "host-passthrough"
   }
 
   cloudinit = libvirt_cloudinit_disk.monitor.id
 
+  # ens3 — management
   network_interface {
-    network_id = libvirt_network.monitor.id
-    addresses  = [var.ip_monitor]
+    bridge = "ovs-monitor"
+    mac    = "52:54:00:76:BB:98"
   }
 
-  # Passive tap interface on target network for traffic mirroring
+  # ens4 — IPS egress toward targets
   network_interface {
-    network_id = libvirt_network.targets.id
+    bridge = "ovs-targets"
+    mac    = "52:54:00:42:CB:E6"
   }
 
-  # Inline IPS interface on attack network
+  # ens5 — IPS ingress from attacker
   network_interface {
-    network_id = libvirt_network.attack.id
+    bridge = "ovs-attack"
+    mac    = "52:54:00:2A:CB:A8"
+  }
+
+  # ens6 — passive IDS capture from attack network
+  network_interface {
+    bridge = "ovs-attack"
+    mac    = "52:54:00:8C:8B:E0"
+  }
+
+  # ens7 — passive IDS capture from target network
+  network_interface {
+    bridge = "ovs-targets"
+    mac    = "52:54:00:8C:8B:E1"
   }
 
   disk {
@@ -230,6 +234,11 @@ resource "libvirt_domain" "monitor" {
   }
 
   autostart = true
+  running   = false
+
+  xml {
+    xslt = file("${path.module}/xslt/ovs-domain-interfaces.xslt")
+  }
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -286,8 +295,7 @@ resource "libvirt_domain" "target" {
   cloudinit = libvirt_cloudinit_disk.target[each.key].id
 
   network_interface {
-    network_id = libvirt_network.targets.id
-    addresses  = [each.value.ip]
+    bridge = "ovs-targets"
   }
 
   disk {

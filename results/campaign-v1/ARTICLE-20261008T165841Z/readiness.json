@@ -1,0 +1,134 @@
+{
+  "engine": "suricata",
+  "scenarios": [
+    "SCN-001",
+    "SCN-002",
+    "SCN-003",
+    "SCN-004",
+    "SCN-005"
+  ],
+  "artifacts": [
+    {
+      "id": "suricata",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "binary",
+      "path": null,
+      "expect_version": "6.0.4",
+      "found": "6.0.4",
+      "required": true,
+      "status": "READY"
+    },
+    {
+      "id": "suricata_rules_archivirt",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "file",
+      "path": "/etc/suricata/rules/archivirt.rules",
+      "expect_version": null,
+      "found": "PRESENT",
+      "required": true,
+      "status": "READY"
+    },
+    {
+      "id": "snort3",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "binary",
+      "path": null,
+      "expect_version": "3.",
+      "found": null,
+      "required": false,
+      "status": "NOT_REQUIRED"
+    },
+    {
+      "id": "libdaq3",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "pkg",
+      "path": null,
+      "expect_version": "3.",
+      "found": null,
+      "required": false,
+      "status": "NOT_REQUIRED"
+    },
+    {
+      "id": "nmap",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "path": null,
+      "expect_version": "7.",
+      "found": "7.80",
+      "required": true,
+      "status": "READY"
+    },
+    {
+      "id": "hydra",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "path": null,
+      "expect_version": null,
+      "found": "v9.2",
+      "required": true,
+      "status": "READY"
+    },
+    {
+      "id": "rockyou",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "file",
+      "path": "/usr/share/wordlists/rockyou.txt",
+      "expect_version": null,
+      "found": "PRESENT",
+      "required": true,
+      "status": "READY"
+    },
+    {
+      "id": "sqlmap",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "path": null,
+      "expect_version": null,
+      "found": "1.6.4#stable",
+      "required": true,
+      "status": "READY"
+    },
+    {
+      "id": "slowloris",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "file",
+      "path": "/opt/archivirt/attack-scripts/slowloris.py",
+      "expect_version": null,
+      "found": "PRESENT",
+      "required": true,
+      "status": "READY"
+    },
+    {
+      "id": "python3",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "path": null,
+      "expect_version": null,
+      "found": "3.10.12",
+      "required": true,
+      "status": "READY"
+    },
+    {
+      "id": "curl",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "path": null,
+      "expect_version": null,
+      "found": "7.81.0",
+      "required": true,
+      "status": "READY"
+    }
+  ],
+  "all_required_ready": true
+}

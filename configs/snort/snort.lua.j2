@@ -9,6 +9,16 @@ include '/usr/local/etc/snort/snort_defaults.lua'
 
 output_timestamps = { utc = true }
 
+stream = { }
+stream_tcp = { }
+
+http_inspect = { }
+
+binder =
+{
+    { when = { proto = 'tcp', ports = '80' }, use = { type = 'http_inspect' } },
+}
+
 network = { checksum_eval = 'none' }
 
 alert_fast = {

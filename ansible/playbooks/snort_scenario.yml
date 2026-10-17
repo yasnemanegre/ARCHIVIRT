@@ -86,6 +86,14 @@
         src:  /home/archivirt/ARCHIVIRT/configs/snort/snort.lua.j2
         dest: /etc/snort3/snort.lua
 
+    - name: Deploy archivirt.rules (Snort detection signatures)
+      copy:
+        src:  /home/archivirt/ARCHIVIRT/configs/snort/archivirt.rules
+        dest: /etc/snort3/rules/archivirt.rules
+        owner: root
+        group: root
+        mode: '0644'
+
     - name: Stop any previous Snort3 instance
       shell: "bash {{ snort_script }} stop {{ scenario }}"
       ignore_errors: yes

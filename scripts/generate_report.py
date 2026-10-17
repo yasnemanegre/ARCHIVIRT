@@ -105,7 +105,7 @@ def build_report():
         d = dbscan.get(ids_key, {})
         table4["rows"].append({
             "ids": ids_name,
-            "events": 3000 if d else "N/A",
+            "events": d.get("events", "N/A"),
             "clusters": d.get("clusters", "N/A"),
             "anomalies": d.get("anomalies", "N/A"),
             "anomaly_rate": d.get("anomaly_rate", "N/A")

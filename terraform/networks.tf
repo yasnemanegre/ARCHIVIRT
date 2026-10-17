@@ -55,6 +55,22 @@ resource "libvirt_network" "attack" {
   }
 }
 
+
+# --- Dedicated IDS Capture Network — OVS bridge ovs-capture ------------------
+# Passive IDS capture only.
+# No IP subnet, gateway, or routing is configured on this network.
+resource "libvirt_network" "capture" {
+  name      = "archivirt-net-capture"
+  mode      = "bridge"
+  bridge    = "ovs-capture"
+  autostart = true
+
+  xml {
+    xslt = file("${path.module}/xslt/ovs-network.xslt")
+  }
+}
+
+
 # --- Manager Network (10.0.5.0/24) — standard libvirt NAT -------------------
 # Manager needs external access for package installs — kept as libvirt NAT
 resource "libvirt_network" "manager" {
@@ -63,7 +79,7 @@ resource "libvirt_network" "manager" {
   addresses = [var.net_manager_cidr]
   autostart = true
   dhcp {
-    enabled = false
+    enabled = true
   }
   dns {
     enabled = true

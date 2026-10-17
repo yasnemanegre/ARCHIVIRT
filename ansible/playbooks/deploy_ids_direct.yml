@@ -1,0 +1,6 @@
+---
+- name: ARCHIVIRT - Direct Suricata IDS deployment
+  hosts: monitor
+  become: true
+  roles:
+    - ids_suricata

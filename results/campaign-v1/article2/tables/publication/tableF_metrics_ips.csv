@@ -1,0 +1,7 @@
+metric,value,n_runs,note
+accuracy,1.0,50,controlled signature set
+precision,1.0,,
+recall,1.0,,
+f1,1.0,,
+fpr,0.0,,
+fnr,0.0,,

@@ -7,8 +7,8 @@
 # Version : 3.0.0 — 2026-05-19
 #
 # Configures OVS port mirroring natively via ovs-vsctl.
-# Mirrors all traffic from ovs-targets and ovs-attack bridges
-# to the monitor VM capture port (ens4 / vnet connected to ovs-targets).
+# Mirrors ovs-attack traffic to the monitor VM IDS capture interface ens6
+# and ovs-targets traffic to the monitor VM IDS capture interface ens7.
 #
 # This replaces the previous tc mirred approach which had limitations
 # with libvirt bridge filtering. OVS native mirroring bypasses this.
@@ -19,75 +19,77 @@
 
 set -euo pipefail
 
-MONITOR_BRIDGE="ovs-targets"
-MIRROR_NAME="archivirt-ids-mirror"
+IDS_ATTACK_INTERFACE="ens6"
+IDS_TARGET_INTERFACE="ens7"
+MIRROR_ATTACK="archivirt-ids-mirror-attack"
+MIRROR_TARGET="archivirt-ids-mirror-targets"
 
-# --- Detect monitor capture port on OVS bridge -------------------------------
-MONITOR_PORT=$(sudo virsh domiflist archivirt-monitor-ids 2>/dev/null | \
-  grep "archivirt-net-targets\|ovs-targets" | \
-  awk '{print $1}' | grep -v "^-$" | head -1)
+get_monitor_port() {
+  local bridge="$1"
+  local mac="$2"
 
-if [ -z "$MONITOR_PORT" ]; then
-  echo "❌ ERROR: monitor capture port not found on ovs-targets bridge"
-  echo "   Ensure archivirt-monitor-ids is running and connected to ovs-targets"
+  sudo virsh domiflist archivirt-monitor-ids 2>/dev/null |
+    awk -v b="$bridge" -v m="$mac" '$3 == b && $5 == m {print $1; exit}'
+}
+
+get_port_id() {
+  sudo ovs-vsctl get Port "$1" _uuid 2>/dev/null
+}
+
+# Resolve the dedicated IDS capture ports by their fixed libvirt MAC addresses.
+# ens6 is the passive capture interface connected to ovs-attack.
+# ens7 is the passive capture interface connected to ovs-targets.
+IDS_ATTACK_MAC="52:54:00:8c:8b:e0"
+IDS_TARGET_MAC="52:54:00:8c:8b:e1"
+
+ATTACK_MAC="$IDS_ATTACK_MAC"
+TARGET_MAC="$IDS_TARGET_MAC"
+
+if [ -z "$ATTACK_MAC" ] || [ -z "$TARGET_MAC" ]; then
+  echo "ERROR: IDS capture interfaces could not be resolved from libvirt"
   exit 1
 fi
 
-echo "[ARCHIVIRT] Monitor capture port: $MONITOR_PORT"
+ATTACK_PORT=$(get_monitor_port "ovs-attack" "$ATTACK_MAC")
+TARGET_PORT=$(get_monitor_port "ovs-targets" "$TARGET_MAC")
 
-# --- Remove existing mirror (idempotent) -------------------------------------
-sudo ovs-vsctl --if-exists destroy Mirror $MIRROR_NAME 2>/dev/null || true
-
-# Clear existing mirror references from bridges
-for bridge in ovs-targets ovs-attack; do
-  sudo ovs-vsctl clear Bridge $bridge mirrors 2>/dev/null || true
-done
-
-# --- Configure OVS port mirror -----------------------------------------------
-# Mirror ALL traffic from ovs-targets and ovs-attack to monitor capture port
-
-# Get all ports on ovs-targets (except monitor port itself)
-TARGETS_PORTS=$(sudo ovs-vsctl list-ports ovs-targets 2>/dev/null | \
-  grep -v "^${MONITOR_PORT}$" | \
-  while read p; do echo "--id=@${p} get Port ${p}"; done)
-
-# Get all ports on ovs-attack
-ATTACK_PORTS=$(sudo ovs-vsctl list-ports ovs-attack 2>/dev/null | \
-  while read p; do echo "--id=@${p} get Port ${p}"; done)
-
-# Get monitor output port ID
-MONITOR_PORT_ID=$(sudo ovs-vsctl get Port $MONITOR_PORT _uuid 2>/dev/null || echo "")
-
-if [ -z "$MONITOR_PORT_ID" ]; then
-  # Add monitor port to ovs-targets if not present
-  sudo ovs-vsctl --may-exist add-port ovs-targets $MONITOR_PORT
+if [ -z "$ATTACK_PORT" ] || [ -z "$TARGET_PORT" ]; then
+  echo "ERROR: IDS capture ports could not be resolved"
+  exit 1
 fi
 
-# Create mirror: all traffic on ovs-targets and ovs-attack → monitor port
+echo "[ARCHIVIRT] IDS attack capture: $ATTACK_PORT -> $IDS_ATTACK_INTERFACE"
+echo "[ARCHIVIRT] IDS target capture: $TARGET_PORT -> $IDS_TARGET_INTERFACE"
+
+sudo ovs-vsctl --if-exists destroy Mirror "$MIRROR_ATTACK" 2>/dev/null || true
+sudo ovs-vsctl --if-exists destroy Mirror "$MIRROR_TARGET" 2>/dev/null || true
+
+sudo ovs-vsctl clear Bridge ovs-attack mirrors
+sudo ovs-vsctl clear Bridge ovs-targets mirrors
+
 sudo ovs-vsctl \
-  -- --id=@mirror_out get Port $MONITOR_PORT \
-  -- --id=@m create Mirror \
-       name=$MIRROR_NAME \
+  -- --id=@attack_out get Port "$ATTACK_PORT" \
+  -- --id=@attack_mirror create Mirror \
+       name="$MIRROR_ATTACK" \
        select-all=true \
-       output-port=@mirror_out \
-  -- add Bridge $MONITOR_BRIDGE mirrors @m
+       output-port=@attack_out \
+  -- add Bridge ovs-attack mirrors @attack_mirror
 
-# Create SEPARATE mirror on ovs-attack (one Mirror object per OVS bridge required)
-sudo ovs-vsctl --if-exists destroy Mirror "${MIRROR_NAME}-attack" 2>/dev/null || true
 sudo ovs-vsctl \
-  -- --id=@mirror_out2 get Port $MONITOR_PORT \
-  -- --id=@m2 create Mirror \
-       name="${MIRROR_NAME}-attack" \
+  -- --id=@target_out get Port "$TARGET_PORT" \
+  -- --id=@target_mirror create Mirror \
+       name="$MIRROR_TARGET" \
        select-all=true \
-       output-port=@mirror_out2 \
-  -- add Bridge ovs-attack mirrors @m2
+       output-port=@target_out \
+  -- add Bridge ovs-targets mirrors @target_mirror
 
-echo "✅ OVS mirrors configured: ovs-targets AND ovs-attack → $MONITOR_PORT"
+echo "OVS IDS mirrors configured:"
+echo "  ovs-attack  -> $ATTACK_PORT ($IDS_ATTACK_INTERFACE)"
+echo "  ovs-targets -> $TARGET_PORT ($IDS_TARGET_INTERFACE)"
 
-# --- Verify mirror -----------------------------------------------------------
 echo "[ARCHIVIRT] Mirror status:"
-sudo ovs-vsctl list Mirror $MIRROR_NAME 2>/dev/null | \
-  grep -E "name|output|select" || echo "Mirror not found — check logs"
+sudo ovs-vsctl --columns=name,output_port,select_all,statistics list Mirror \
+  | grep -E "name|output_port|select_all|statistics" || true
 
 # --- Show OVS topology -------------------------------------------------------
 echo "[ARCHIVIRT] OVS bridges:"

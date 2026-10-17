@@ -1,0 +1,5 @@
+class,count,unit,definition
+TP,40,runs,"attack run, expected SID fired"
+FN,0,runs,"attack run, expected SID did NOT fire"
+FP,0,runs,"benign run, an attack SID fired"
+TN,10,runs,"benign run, no attack SID fired"

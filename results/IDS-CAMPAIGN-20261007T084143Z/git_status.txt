@@ -1,0 +1,11 @@
+ M ansible.cfg
+ M ansible/inventory/hosts.ini
+ M ansible/playbooks/suricata_scenario.yml
+ M ansible/roles/ids_suricata/tasks/main.yml
+ M ansible/roles/ids_suricata/templates/suricata.yaml.j2
+ M scripts/archivirt_mirrors.sh
+ M scripts/run_suricata.sh
+?? results/IDS-CAMPAIGN-20261007T063618Z/
+?? results/IDS-CAMPAIGN-20261007T084143Z/
+?? results/ips_test_01_syn_scan_20261006-141240.txt
+?? scripts/launch_campaign.sh

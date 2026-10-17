@@ -1,0 +1,5 @@
+metric,unit,baseline,ids,ips,ids_vs_baseline_rel
+cpu_percent,%,NOT_APPLICABLE,13.1662,14.4536,NOT_AVAILABLE
+rss_mb,MB,NOT_APPLICABLE,50.142,44.308,NOT_AVAILABLE
+captured_pps,pps,559.4334,560.57,NOT_APPLICABLE,0.2%
+captured_mbps,Mbps,0.3268,0.3272,NOT_APPLICABLE,0.1%

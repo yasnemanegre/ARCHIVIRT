@@ -28,6 +28,10 @@
   gather_facts: no
 
   vars:
+    # Dedicated passive IDS capture bridge.
+    # It intentionally has no IP address and no DHCP service.
+    capture_bridge: ovs-capture
+
     ovs_bridges:
       - name: ovs-targets
         ip:   "10.0.2.1/24"
@@ -62,6 +66,14 @@
       command: "ovs-vsctl --may-exist add-br {{ item.name }}"
       loop: "{{ ovs_bridges }}"
 
+    # Dedicated passive IDS capture bridge.
+    # No gateway IP and no DHCP are configured on this bridge.
+    - name: Create dedicated IDS capture bridge
+      command: "ovs-vsctl --may-exist add-br {{ capture_bridge }}"
+
+    - name: Bring up dedicated IDS capture bridge
+      command: "ip link set {{ capture_bridge }} up"
+
     - name: Assign gateway IPs to OVS bridges
       command: "ip addr replace {{ item.ip }} dev {{ item.name }}"
       loop: "{{ ovs_bridges }}"
@@ -88,6 +100,11 @@
           ip link set {{ bridge.name }} up
           ip addr replace {{ bridge.ip }} dev {{ bridge.name }} || true
           {% endfor %}
+
+          # Dedicated passive IDS capture bridge.
+          # No IP address is assigned.
+          ovs-vsctl --may-exist add-br {{ capture_bridge }}
+          ip link set {{ capture_bridge }} up
           ip route add 10.0.5.0/24 dev virbr1 src 10.0.5.1 2>/dev/null || true
           echo "ARCHIVIRT: OVS bridge IPs restored"
 

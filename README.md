@@ -18,7 +18,27 @@ One command runs the full pipeline: destroy → OVS setup → deploy 6 VMs → 1
 
 ---
 
-## Latest Results — 14.06.2026
+## Article 2 — Experimental Results
+
+> **Scope note.** The results below characterize the **tested ARCHIVIRT configuration and the controlled, discriminative Article-2 signature set** (4 threshold-based signatures + 1 benign control). They are **not** a universal benchmark of Suricata, and must be read as *"in the experimental conditions considered…"*.
+
+- **Engine:** Suricata 6.0.4 (IDS af-packet on ens6/ens7; IPS inline NFQUEUE).
+- **Campaigns:** IDS ×10, IPS ×10, baseline ×3 — **115 runs** total (100 VALID, 15 INVALID *by design* = baseline without an engine; 0 PREREQUISITE_MISSING).
+- **Detection / blocking (run-level confusion, VALID runs):** IDS and IPS each **TP=40, TN=10, FP=0, FN=0** → Accuracy = Precision = Recall = F1 = 1.0, FPR = FNR = 0 **for this signature set**.
+- **IPS blocking:** real `action:blocked` events observed — 100 % of attack runs blocked, **0 %** of benign runs (no false blocking).
+- **Detection latency (mean, n=10):** ≈105–311 ms depending on scenario (real timestamps; see Table D).
+- **Engine impact:** CPU ≈ 13–15 %, RSS ≈ 44–50 MB, 0 capture drops.
+
+Full audited dataset, tables, figures and the scientific audit: **`results/campaign-v1/article2/`**
+(`aggregated_metrics.json`, `statistical_summary.json`, `article2_results.csv`, `tables/`, `tables/publication/`, `figures/`, `synthesis.md`, `scientific_audit.md`).
+
+**Limitation (SCN-002):** the SSH target enforces public-key-only authentication, so this scenario measures an **SSH connection-rate attack pattern**, not password guessing.
+
+---
+
+## Historical results — v4.1, 14.06.2026 (superseded methodology, kept for reference)
+
+> ⚠️ The table below predates the Article-2 audited methodology (different pipeline, includes Snort 3 and DBSCAN figures that are **out of scope** for the current Article-2 freeze). It is retained for historical reference only and is **superseded** by the Article-2 results above and by `results/campaign-v1/article2/scientific_audit.md`.
 
 | Scenario        | IDS            | Alerts  | DR%   | FPR%  | Lat(ms) |
 |-----------------|----------------|---------|-------|-------|---------|
@@ -145,3 +165,57 @@ ansible-playbook ansible/playbooks/setup_influxdb.yml \
   -i ansible/inventory/hosts.ini \
   --ask-vault-pass
 ```
+
+---
+
+## campaign_v1 — Experimental Engine (Article 2)
+
+`campaign_v1/` is the **current experimental reference** for Article 2 (independent of the legacy `archivirt-reset.sh` pipeline). It owns the single sources of truth:
+
+```
+campaign_v1/
+├── engines/      suricata.sh (IDS/IPS), snort3.sh (offline-gated stub), stop.sh
+├── scenarios/    SCN-001..005 (attack + benign control), machine-readable markers
+├── rules/        archivirt-article2-ids.rules / -ips.rules (discriminative signatures)
+├── manifest/     offline_manifest.json (offline artifact set)
+├── schema/       result.json (canonical per-run schema)
+└── preflight.sh  per-scenario prerequisite report (no install)
+
+scripts/campaign_v1/   orchestrator + processors + analysis
+├── campaign_v1.sh     orchestrator (engine dispatch, offline gate, provenance, perf)
+├── validate_run.py    per-run validation + ground-truth TP/FP/FN/TN classification
+├── summarize.py       campaign summary
+├── compute_perf.py    CPU/RAM + capture throughput per run
+├── offline_audit.sh / offline_audit.py   offline readiness (READY/MISSING/...)
+├── analyze.py         metrics, confusion matrix, statistics, tables
+├── figures.py         figures (matplotlib)
+├── synthesize.py      scientific synthesis
+└── scientific_audit.py  audit answers
+```
+
+### Run one qualification
+```bash
+bash campaign_v1/preflight.sh                              # prerequisites report (no install)
+MODE=ids RUNS=1 SCENARIOS_LIST="SCN-001" bash scripts/campaign_v1/campaign_v1.sh
+```
+Modes: `MODE=ids|ips|baseline`. Engine: `ENGINE=suricata-6.0.4` (default) or `ENGINE=snort3` (offline-gated). Offline gate: `ENFORCE_OFFLINE=1` (default) aborts if required local artifacts are missing — nothing is ever downloaded.
+
+### Validation method
+A run is `VALID` only when the attack really ran, EVE was really collected, and (for attack scenarios) the scenario's expected signature fired. `INVALID` / `PREREQUISITE_MISSING` runs are kept, never silently dropped, and never enter VALID statistics. Each run records provenance (git commit, versions, artifact SHA-256).
+
+### Reproduce the analysis
+```bash
+python3 scripts/campaign_v1/analyze.py  results/campaign-v1/article2 <IDS_dir> <baseline_dir> <IPS_dir>
+python3 scripts/campaign_v1/figures.py  results/campaign-v1/article2 <IDS_dir> <baseline_dir> <IPS_dir>
+python3 scripts/campaign_v1/synthesize.py      results/campaign-v1/article2
+python3 scripts/campaign_v1/scientific_audit.py results/campaign-v1/article2 <IDS_dir> <baseline_dir> <IPS_dir>
+```
+
+## Results location
+- **Article-2 deliverables:** `results/campaign-v1/article2/`
+- **Raw per-run records (committed):** `results/campaign-v1/ARTICLE-*/` (result.json, perf.json, timestamps, summary, provenance, readiness).
+- **Bulky packet-level EVE (`eve.json`, `*_raw.txt`):** retained locally for deep traceability but **not committed** (size); see `.gitignore`.
+
+## Project status
+- ✅ Suricata IDS/IPS Article-2 campaigns executed, analysed, audited and **frozen** (`article2-experimental-v1`).
+- ⏳ Phase 2 (out of scope here): fully offline Artifact Set, destroy/rebuild without Internet, Snort 3 integration, DBSCAN/ML/UEBA.
