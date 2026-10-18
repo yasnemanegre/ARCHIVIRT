@@ -140,12 +140,12 @@ ARCHIVIRT/
 
 ## License
 
-MIT — Copyright (c) 2024–2026 Yasnemanegre SAWADOGO, SPbGUPTD
+MIT — Copyright (c) 2025–2026 Yasnemanegre SAWADOGO, SPbGUPTD
 
 ## Citation
 Sawadogo, Y. ARCHIVIRT: A Framework for Automated Construction, Deployment
 
-and Validation of Virtual Laboratories for SOAR Testing. SPbGUPTD, 2026.
+and Validation of Virtual Laboratories for IDS/IPS Testing. SPbGUPTD, 2026.
 
 https://github.com/yasnemanegre/ARCHIVIRT
 
