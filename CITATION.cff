@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use ARCHIVIRT, please cite it as below."
-title: "ARCHIVIRT — Automated Reproducible Cyber Hybrid Infrastructure for Virtual SOAR/IDS-IPS Testing Labs"
+title: "ARCHIVIRT — Automated Reproducible Cyber Hybrid Infrastructure for Virtual IDS/IPS Testing Labs"
 authors:
   - family-names: "Sawadogo"
     given-names: "Yasnemanegre"
