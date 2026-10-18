@@ -1,6 +1,6 @@
 # ARCHIVIRT
 
-**Automated Reproducible Cyber Hybrid Infrastructure for VIRTual SOAR Testing Labs**
+**Automated Reproducible Cyber Hybrid Infrastructure for VIRTual IDS/IPS Testing Labs**
 
 > MIT License | SPbGUPTD | Yasnemanegre SAWADOGO | v4.1 — 14.06.2026
 
