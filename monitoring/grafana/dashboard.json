@@ -81,7 +81,7 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "datasource": {"type": "influxdb", "uid": "archivirt-influx"},
       "fieldConfig": {"defaults": {"unit": "percent", "color": {"mode": "palette-classic"}}},
-      "targets": [{"datasource": {"type": "influxdb", "uid": "archivirt-influx"}, "query": "from(bucket: \"archivirt\") |> range(start: -30m) |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\" and r[\"_field\"] == \"usage_user\" and r[\"cpu\"] == \"cpu-total\") |> aggregateWindow(every: 10s, fn: mean)", "refId": "A"}]
+      "targets": [{"datasource": {"type": "influxdb", "uid": "archivirt-influx"}, "query": "from(bucket: \"archivirt\") |> range(start: -30m) |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\" and r[\"_field\"] == \"usage_user\" and r[\"cpu\"] == \"cpu-total\" and r[\"host\"] == \"archivirt-monitor-ids\") |> aggregateWindow(every: 10s, fn: mean)", "refId": "A"}]
     },
     {
       "id": 10, "type": "timeseries", "title": "IDS Alerts Over Time",

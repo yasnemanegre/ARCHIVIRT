@@ -1,75 +1,182 @@
+---
 # =============================================================================
-# ARCHIVIRT — Deploy Telegraf on monitor-ids VM
-# =============================================================================
-# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
-# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
-# Version : 2.0.0 — 2026-06-14
-#
-# Deploys Telegraf on monitor-ids VM for real-time metrics:
-#   - CPU, RAM, network (Mbps)
-#   - Snort + Suricata process stats
-#   - Alert counters per scenario
-#
-# Usage:
-#   ansible-playbook ansible/playbooks/deploy_telegraf.yml \
-#     -i ansible/inventory/hosts.ini
-#
-# Prerequisites: setup_influxdb.yml must have run first
+# ARCHIVIRT - Deploy Telegraf on monitor-ids (offline, pinned, no secret in git)
+# Package : telegraf {{ monitoring_versions.telegraf }} from the local APT mirror
+# Config  : monitoring/telegraf-monitor.conf (token/URL read from environment)
+#           monitoring/telegraf-alert-counts.sh (IDS alert counters)
+# Secret  : INFLUX_TOKEN written to /etc/default/telegraf from the vault
+# Usage   : ansible-playbook -i ansible/inventory/hosts.ini \
+#             ansible/playbooks/deploy_telegraf.yml \
+#             --vault-password-file ~/.archivirt/vault_pass
+# Checks  : InfluxDB reachable before install; config validated by telegraf
+#           before it replaces the live one; restart only on change; no error
+#           in the Telegraf journal; cpu/mem/net (+ procstat / alert counters
+#           when their source exists) found in InfluxDB for host monitor-ids.
+# WARNING : Telegraf adds CPU load on monitor-ids. Record its presence as an
+#           experimental condition; never deploy it silently before a campaign.
 # =============================================================================
 - name: ARCHIVIRT - Deploy Telegraf on monitor-ids
   hosts: archivirt-monitor-ids
   become: yes
+  vars:
+    telegraf_alert_script: /usr/local/lib/archivirt/telegraf-alert-counts.sh
+    telegraf_monitor_host: archivirt-monitor-ids
 
-  tasks:
-    - name: Copy Telegraf package from local mirror
-      copy:
-        src: /var/spool/apt-mirror/packages/telegraf_1.29.5_amd64.deb
-        dest: /tmp/telegraf.deb
-        mode: '0644'
-
-    - name: Install Telegraf from local package
-      apt:
-        deb: /tmp/telegraf.deb
-        state: present
-
-    - name: Deploy Telegraf configuration
-      copy:
-        src: /home/archivirt/ARCHIVIRT/monitoring/telegraf-monitor.conf
-        dest: /etc/telegraf/telegraf.conf
-        owner: root
-        group: root
-        mode: '0644'
-
-    - name: Add telegraf user to required groups
-      user:
-        name: telegraf
-        groups: adm
-        append: yes
-
-    - name: Restart and enable Telegraf
+  handlers:
+    - name: Restart telegraf
       systemd:
         name: telegraf
         state: restarted
-        enabled: yes
         daemon_reload: yes
 
-    - name: Wait for Telegraf to start
-      pause:
-        seconds: 5
+  tasks:
+    # ---- Preconditions -----------------------------------------------------
+    - name: InfluxDB on the manager is reachable from monitor-ids
+      uri:
+        url: "{{ influx_url_monitor_net }}/health"
+        status_code: 200
+      check_mode: false
 
-    - name: Verify Telegraf is running
+    - name: Use the local APT mirror only
+      copy:
+        dest: /etc/apt/sources.list.d/archivirt-local.list
+        content: "deb [trusted=yes] {{ archivirt_mirror_url }} ./\n"
+        mode: '0644'
+
+    - name: Refresh APT index from the local mirror
+      apt:
+        update_cache: yes
+      changed_when: false
+
+    - name: Assert telegraf {{ monitoring_versions.telegraf }} is provided by the mirror
+      command: apt-cache policy telegraf
+      register: tpol
+      changed_when: false
+      check_mode: false
+      failed_when: monitoring_versions.telegraf not in tpol.stdout or archivirt_mirror_url not in tpol.stdout
+
+    # ---- Install and configure ---------------------------------------------
+    - name: Install pinned Telegraf
+      apt:
+        name: "telegraf={{ monitoring_versions.telegraf }}"
+        state: present
+        install_recommends: no
+
+    - name: Create the ARCHIVIRT helper directory
+      file:
+        path: "{{ telegraf_alert_script | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Deploy the IDS alert counter script
+      copy:
+        src: "{{ archivirt_project_dir }}/monitoring/telegraf-alert-counts.sh"
+        dest: "{{ telegraf_alert_script }}"
+        owner: root
+        group: root
+        mode: '0755'
+      notify: Restart telegraf
+
+    - name: Deploy Telegraf configuration (validated by telegraf before replacing; no secret inside)
+      copy:
+        src: "{{ archivirt_project_dir }}/monitoring/telegraf-monitor.conf"
+        dest: /etc/telegraf/telegraf.conf
+        owner: root
+        group: telegraf
+        mode: '0640'
+        validate: "env INFLUX_URL=http://127.0.0.1:9 INFLUX_TOKEN=validation-only telegraf --config %s --test --test-wait 1"
+      notify: Restart telegraf
+
+    - name: Provide InfluxDB token and URL via environment file
+      copy:
+        dest: /etc/default/telegraf
+        content: |
+          INFLUX_TOKEN={{ influx_token }}
+          INFLUX_URL={{ influx_url_monitor_net }}
+        owner: root
+        group: telegraf
+        mode: '0640'
+      no_log: true
+      notify: Restart telegraf
+
+    - name: Enable and start Telegraf
       systemd:
         name: telegraf
-      register: telegraf_status
+        state: started
+        enabled: yes
 
-    - name: Show Telegraf status
-      debug:
-        msg: "Telegraf: {{ telegraf_status.status.ActiveState }}"
+    - name: Apply pending restarts now
+      meta: flush_handlers
+
+    # ---- Verification ------------------------------------------------------
+    - name: Verify Telegraf is active
+      command: systemctl is-active telegraf
+      register: telegraf_active
+      retries: 6
+      delay: 5
+      until: telegraf_active.stdout == "active"
+      changed_when: false
+      check_mode: false
+
+    - name: Detect which optional sources exist (as the telegraf user)
+      shell: |
+        # Patterns anchored at the start of the command line, so this shell
+        # (whose own command line contains the engine names) never matches.
+        pgrep -f '^([^ ]*/)?suricata( |$)' >/dev/null && echo suricata_proc=1 || echo suricata_proc=0
+        pgrep -f '^([^ ]*/)?snort( |$)' >/dev/null && echo snort_proc=1 || echo snort_proc=0
+        runuser -u telegraf -- test -r /var/log/suricata/fast.log && echo suricata_alerts=1 || echo suricata_alerts=0
+        runuser -u telegraf -- sh -c 'for f in /var/log/snort3/*/alert_fast.txt; do test -r "$f" && exit 0; done; exit 1' && echo snort_alerts=1 || echo snort_alerts=0
+      register: sources
+      changed_when: false
+      check_mode: false
+
+    - name: Build the list of measurements to verify
+      set_fact:
+        telegraf_expected: >-
+          {{ [{'m': 'cpu', 'extra': ''}, {'m': 'mem', 'extra': ''}, {'m': 'net', 'extra': ''}]
+             + ([{'m': 'procstat', 'extra': ' and r.pattern == "suricata"'}] if 'suricata_proc=1' in sources.stdout_lines else [])
+             + ([{'m': 'procstat', 'extra': ' and r.pattern == "snort"'}] if 'snort_proc=1' in sources.stdout_lines else [])
+             + ([{'m': 'archivirt_suricata_alerts', 'extra': ''}] if 'suricata_alerts=1' in sources.stdout_lines else [])
+             + ([{'m': 'archivirt_snort_alerts', 'extra': ''}] if 'snort_alerts=1' in sources.stdout_lines else []) }}
+
+    - name: Verify each expected measurement reached InfluxDB (last 2 min, host monitor-ids)
+      uri:
+        url: "{{ influx_url_monitor_net }}/api/v2/query?org={{ influx_org }}"
+        method: POST
+        headers:
+          Authorization: "Token {{ influx_token }}"
+          Content-Type: application/vnd.flux
+          Accept: application/csv
+        body: >-
+          from(bucket: "{{ influx_bucket }}") |> range(start: -2m)
+          |> filter(fn: (r) => r._measurement == "{{ item.m }}" and r.host == "{{ telegraf_monitor_host }}"{{ item.extra }})
+          |> count() |> limit(n: 1)
+        return_content: yes
+      loop: "{{ telegraf_expected }}"
+      loop_control:
+        label: "{{ item.m }}{{ item.extra }}"
+      register: mpoints
+      no_log: true
+      retries: 12
+      delay: 5
+      until: mpoints.status == 200 and (mpoints.content | regex_search('_value'))
+      check_mode: false
+      when: not ansible_check_mode
+
+    - name: No error reported by Telegraf since its last start
+      shell: |
+        since=$(systemctl show telegraf -p ActiveEnterTimestamp --value)
+        journalctl -u telegraf --since "$since" --no-pager | grep -E ' E! ' || true
+      register: terrors
+      changed_when: false
+      check_mode: false
+      failed_when: terrors.stdout | length > 0
 
     - name: Summary
       debug:
         msg:
-          - "✅ Telegraf deployed on monitor-ids"
-          - "   Sending metrics to InfluxDB: http://10.0.5.10:8086"
-          - "   Bucket: archivirt | Org: archivirt"
-          - "   Interval: 10s"
+          - "Telegraf {{ monitoring_versions.telegraf }} on monitor-ids -> {{ influx_url_monitor_net }} org={{ influx_org }} bucket={{ influx_bucket }}"
+          - "optional sources: {{ sources.stdout_lines | join(', ') }}"
+          - "verified in InfluxDB: {{ telegraf_expected | map(attribute='m') | list | join(', ') }}"
