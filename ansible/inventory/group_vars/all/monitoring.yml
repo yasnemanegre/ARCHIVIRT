@@ -1,0 +1,75 @@
+---
+# ARCHIVIRT — canonical monitoring configuration (single source of truth).
+#
+# Decision record (2026-10-17):
+# - org "archivirt": used by every existing component.
+# - bucket "archivirt": queried by monitoring/grafana/dashboard.json, created by
+#   setup_influxdb.yml, written by monitoring/telegraf-monitor.conf. The former
+#   names "archivirt-metrics" and "archivirt_ids" are retired.
+# - datasource uid "archivirt-influx": referenced by every dashboard panel.
+# - versions: exactly those served by the local mirror (http://<gw>:8080).
+# - InfluxDB runs on the manager; monitor-ids reaches it through the manager's
+#   ovs-monitor interface (10.0.3.254), the manager itself uses localhost.
+# Secrets live in group_vars/all/vault.yml (ansible-vault, never committed).
+
+influx_org: archivirt
+influx_bucket: archivirt
+influx_admin_user: admin
+influx_url_local: "http://localhost:8086"
+influx_url_monitor_net: "http://10.0.3.254:8086"
+
+grafana_admin_user: admin
+grafana_datasource_name: InfluxDB-ARCHIVIRT
+grafana_datasource_uid: archivirt-influx
+
+monitoring_versions:
+  grafana: "13.2.3"
+  influxdb2: "2.9.1-1"
+  influxdb2_cli: "2.8.0-1"
+  telegraf: "1.40.1-1"
+
+# Collection/storage: always deployed, independent of Grafana.
+monitoring_core_packages:
+  - { name: influxdb2, version: "{{ monitoring_versions.influxdb2 }}" }
+  - { name: influxdb2-cli, version: "{{ monitoring_versions.influxdb2_cli }}" }
+  - { name: telegraf, version: "{{ monitoring_versions.telegraf }}" }
+
+# ── Grafana (optional UI) ────────────────────────────────────
+# archivirt_grafana_enabled: true  → Grafana installed, hardened, provisioned
+#                                    and validated (authentication required).
+# archivirt_grafana_enabled: false → Grafana stopped and disabled if present
+#                                    (package and data kept); InfluxDB and
+#                                    Telegraf keep collecting metrics.
+# Override per run: -e archivirt_grafana_enabled=false
+archivirt_grafana_enabled: true
+
+monitoring_grafana_packages:
+  - { name: grafana, version: "{{ monitoring_versions.grafana }}" }
+
+# Non-secret Grafana hardening (written to /etc/default/grafana-server).
+# Offline lab: no outbound call; no anonymous access; no self sign-up.
+grafana_hardening_env:
+  GF_AUTH_ANONYMOUS_ENABLED: "false"
+  GF_AUTH_BASIC_ENABLED: "true"
+  GF_AUTH_DISABLE_LOGIN_FORM: "false"
+  GF_USERS_ALLOW_SIGN_UP: "false"
+  GF_USERS_ALLOW_ORG_CREATE: "false"
+  GF_SECURITY_DISABLE_GRAVATAR: "true"
+  GF_SECURITY_COOKIE_SAMESITE: "strict"
+  GF_ANALYTICS_REPORTING_ENABLED: "false"
+  GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+  GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+  GF_ANALYTICS_FEEDBACK_LINKS_ENABLED: "false"
+  GF_NEWS_NEWS_FEED_ENABLED: "false"
+  GF_PLUGINS_PUBLIC_KEY_RETRIEVAL_DISABLED: "true"
+  # Grafana 12+/13 background plugin installer downloads plugins from
+  # grafana.com at start-up: disabled (observed in the isolated rebuild test).
+  GF_PLUGINS_PREINSTALL_DISABLED: "true"
+  GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"
+  GF_SNAPSHOTS_EXTERNAL_ENABLED: "false"
+
+# Secret indirection (values only in the vault)
+influx_token: "{{ vault_influx_token }}"
+influx_admin_password: "{{ vault_influx_password }}"
+grafana_admin_password: "{{ vault_grafana_password }}"
+grafana_secret_key: "{{ vault_grafana_secret_key }}"
