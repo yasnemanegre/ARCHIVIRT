@@ -1,0 +1,248 @@
+---
+# =============================================================================
+# ARCHIVIRT - Rotate the InfluxDB API token (no secret ever displayed)
+# InfluxDB 2 generates token values server-side, so rotation is:
+#   1. verify the current vault token; find its authorization (same perms)
+#   2. create a NEW authorization with the same permissions (server token)
+#   3. store the new token in ansible-vault (scripts/vault_set_key.py, value
+#      via stdin, encrypted backup of the previous vault)
+#   4. redeploy every consumer with the new token: role manager (Telegraf on
+#      the manager, Grafana datasource) and Telegraf on monitor-ids if present
+#   5. verify metrics with the new token
+#   6. only then deactivate the OLD authorization, check the old token is
+#      rejected, and delete it (re-activated on failure)
+# Any failure in 3-6 → rollback: previous vault restored, consumers redeployed
+# with the old token, new authorization deleted (old one never revoked).
+# Usage: ansible-playbook -i ansible/inventory/hosts.ini \
+#          ansible/playbooks/rotate_influx_token.yml \
+#          --vault-password-file ~/.archivirt/vault_pass
+# Requires a snapshot of the manager beforehand (recommended).
+# =============================================================================
+- name: ARCHIVIRT | Rotate the InfluxDB API token
+  hosts: archivirt-manager
+  become: true
+  gather_facts: true
+  vars:
+    vault_file: "{{ playbook_dir }}/../inventory/group_vars/all/vault.yml"
+    vault_pass_file: "{{ lookup('ansible.builtin.env', 'HOME') }}/.archivirt/vault_pass"
+    vault_tool: "{{ playbook_dir }}/../../scripts/vault_set_key.py"
+
+  tasks:
+    - name: Current vault token is valid
+      ansible.builtin.uri:
+        url: "{{ influx_url_local }}/api/v2/buckets?org={{ influx_org }}&name={{ influx_bucket }}"
+        headers:
+          Authorization: "Token {{ influx_token }}"
+        status_code: 200
+      no_log: true
+
+    - name: Keep the current token in memory (for rollback)
+      ansible.builtin.set_fact:
+        _old_token: "{{ influx_token }}"
+      no_log: true
+
+    - name: List authorizations of the org
+      ansible.builtin.uri:
+        url: "{{ influx_url_local }}/api/v2/authorizations?org={{ influx_org }}"
+        headers:
+          Authorization: "Token {{ _old_token }}"
+        return_content: true
+      register: _auths
+      no_log: true
+
+    # InfluxDB 2.9 redacts token values in listings, so the current token's
+    # authorization cannot be matched by value. ARCHIVIRT only creates tokens
+    # at onboarding or through this playbook: exactly one active authorization
+    # is expected. It is verified later by deactivating it (reversible) and
+    # checking that the old token is then rejected.
+    - name: Select the single active authorization (current token)
+      ansible.builtin.set_fact:
+        _active_auths: "{{ _auths.json.authorizations | selectattr('status', 'equalto', 'active') | list }}"
+      no_log: true
+
+    - name: Exactly one active authorization is required
+      ansible.builtin.assert:
+        that: _active_auths | length == 1
+        fail_msg: "{{ _active_auths | length }} active authorizations found: identify the one used by the vault token manually (influx auth list) — nothing was changed."
+        quiet: true
+
+    - name: Keep the candidate authorization
+      ansible.builtin.set_fact:
+        _old_auth: "{{ _active_auths | first }}"
+      no_log: true
+
+    - name: Create a new authorization with the same permissions
+      ansible.builtin.uri:
+        url: "{{ influx_url_local }}/api/v2/authorizations"
+        method: POST
+        headers:
+          Authorization: "Token {{ _old_token }}"
+        body_format: json
+        body:
+          orgID: "{{ _old_auth.orgID }}"
+          userID: "{{ _old_auth.userID }}"
+          description: "archivirt token rotated {{ ansible_date_time.iso8601 }}"
+          permissions: "{{ _old_auth.permissions }}"
+        status_code: 201
+        return_content: true
+      register: _new_auth
+      no_log: true
+
+    - name: Switch to the new token, verify, then revoke the old one
+      block:
+        - name: Store the new token in ansible-vault (controller; value via stdin)
+          ansible.builtin.command:
+            cmd: "{{ vault_tool }} --key vault_influx_token --vault {{ vault_file }} --vault-password-file {{ vault_pass_file }}"
+            stdin: "{{ _new_auth.json.token }}"
+          delegate_to: localhost
+          become: false
+          register: _vault_backup
+          no_log: true
+          changed_when: true
+
+        - name: Use the new token for the rest of the play
+          ansible.builtin.set_fact:
+            vault_influx_token: "{{ _new_auth.json.token }}"
+          no_log: true
+
+        - name: Redeploy manager consumers (Telegraf, Grafana datasource) and validate
+          ansible.builtin.include_role:
+            name: manager
+
+        - name: Detect Telegraf on monitor-ids
+          ansible.builtin.command: systemctl list-unit-files telegraf.service --no-legend
+          delegate_to: archivirt-monitor-ids
+          register: _monitor_telegraf
+          changed_when: false
+          failed_when: false
+
+        - name: Update the token of Telegraf on monitor-ids (if installed)
+          ansible.builtin.copy:
+            dest: /etc/default/telegraf
+            content: |
+              INFLUX_TOKEN={{ _new_auth.json.token }}
+              INFLUX_URL={{ influx_url_monitor_net }}
+            owner: root
+            group: telegraf
+            mode: "0640"
+          delegate_to: archivirt-monitor-ids
+          no_log: true
+          when: _monitor_telegraf.stdout is search('telegraf.service')
+
+        - name: Restart Telegraf on monitor-ids (if installed)
+          ansible.builtin.systemd:
+            name: telegraf
+            state: restarted
+          delegate_to: archivirt-monitor-ids
+          when: _monitor_telegraf.stdout is search('telegraf.service')
+
+        - name: Deactivate the old authorization (reversible)
+          ansible.builtin.uri:
+            url: "{{ influx_url_local }}/api/v2/authorizations/{{ _old_auth.id }}"
+            method: PATCH
+            headers:
+              Authorization: "Token {{ _new_auth.json.token }}"
+            body_format: json
+            body:
+              status: inactive
+            status_code: 200
+          no_log: true
+          register: _deactivated
+
+        # InfluxDB 2.9: an INACTIVE token still gets HTTP 200 on list endpoints
+        # but loses every permission (empty lists, Flux 404). Seeing zero
+        # buckets proves the deactivated authorization was the vault token's.
+        - name: The old token has lost access once its authorization is inactive
+          ansible.builtin.uri:
+            url: "{{ influx_url_local }}/api/v2/buckets?org={{ influx_org }}&name={{ influx_bucket }}"
+            headers:
+              Authorization: "Token {{ _old_token }}"
+            return_content: true
+            status_code: [200, 401]
+          register: _old_after_deactivate
+          no_log: true
+          failed_when: >-
+            _old_after_deactivate.status == 200 and
+            (_old_after_deactivate.json.buckets | default([]) | length) != 0
+
+        - name: Delete the old authorization
+          ansible.builtin.uri:
+            url: "{{ influx_url_local }}/api/v2/authorizations/{{ _old_auth.id }}"
+            method: DELETE
+            headers:
+              Authorization: "Token {{ _new_auth.json.token }}"
+            status_code: 204
+          no_log: true
+
+        - name: The old token is rejected after deletion
+          ansible.builtin.uri:
+            url: "{{ influx_url_local }}/api/v2/buckets?org={{ influx_org }}"
+            headers:
+              Authorization: "Token {{ _old_token }}"
+            status_code: 401
+          no_log: true
+
+        - name: Rotation summary
+          ansible.builtin.debug:
+            msg:
+              - "InfluxDB token rotated: new authorization active, consumers redeployed, metrics verified, old authorization revoked"
+              - "Encrypted backup of the previous vault: {{ _vault_backup.stdout }}"
+
+      rescue:
+        - name: Re-activate the old authorization if it was deactivated
+          ansible.builtin.uri:
+            url: "{{ influx_url_local }}/api/v2/authorizations/{{ _old_auth.id }}"
+            method: PATCH
+            headers:
+              Authorization: "Token {{ _new_auth.json.token }}"
+            body_format: json
+            body:
+              status: active
+            status_code: 200
+          no_log: true
+          when: _deactivated is defined and _deactivated.status | default(0) == 200
+
+        - name: Restore the previous vault (controller, kept ENCRYPTED)
+          ansible.builtin.copy:
+            src: "{{ _vault_backup.stdout }}"
+            dest: "{{ vault_file }}"
+            mode: "0600"
+            decrypt: false   # copy decrypts vault files by default — never here
+          delegate_to: localhost
+          become: false
+          when: _vault_backup.stdout is defined and _vault_backup.stdout | length > 0
+
+        - name: Return to the old token
+          ansible.builtin.set_fact:
+            vault_influx_token: "{{ _old_token }}"
+          no_log: true
+
+        - name: Redeploy consumers with the old token
+          ansible.builtin.include_role:
+            name: manager
+
+        - name: Restore the old token on monitor-ids Telegraf (if installed)
+          ansible.builtin.copy:
+            dest: /etc/default/telegraf
+            content: |
+              INFLUX_TOKEN={{ _old_token }}
+              INFLUX_URL={{ influx_url_monitor_net }}
+            owner: root
+            group: telegraf
+            mode: "0640"
+          delegate_to: archivirt-monitor-ids
+          no_log: true
+          when: _monitor_telegraf is defined and _monitor_telegraf.stdout is search('telegraf.service')
+
+        - name: Delete the new authorization
+          ansible.builtin.uri:
+            url: "{{ influx_url_local }}/api/v2/authorizations/{{ _new_auth.json.id }}"
+            method: DELETE
+            headers:
+              Authorization: "Token {{ _old_token }}"
+            status_code: 204
+          no_log: true
+
+        - name: Rotation failed and was rolled back
+          ansible.builtin.fail:
+            msg: "InfluxDB token rotation FAILED and was rolled back (old token kept, new authorization deleted)."
