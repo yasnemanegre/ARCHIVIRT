@@ -1,0 +1,3 @@
+---
+# Local APT mirror as seen from the attacker (gateway of ovs-attack).
+archivirt_mirror_url: "http://10.0.4.1:8080"

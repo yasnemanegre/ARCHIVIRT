@@ -1,0 +1,4 @@
+# ARCHIVIRT — VALIDATION ruleset for Snort 3.1.74.0 (IDS). Same markers as the Suricata validation set.
+# NOT the Article-2 ruleset; archivirt.rules is never touched. SID range 9200000-9200099.
+alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"ARCHIVIRT VALIDATION canary user-agent (snort3)"; flow:established,to_server; http_header:field user-agent; content:"ARCHIVIRT-VALIDATION-CANARY-7f3a"; sid:9200001; rev:1;)
+alert icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"ARCHIVIRT VALIDATION canary icmp payload (snort3)"; itype:8; content:"ARCHIVIRT-ICMP-CANARY"; sid:9200002; rev:1;)

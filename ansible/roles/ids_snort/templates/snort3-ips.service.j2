@@ -1,0 +1,15 @@
+# ARCHIVIRT Snort {{ snort3_version }} — inline IPS through NFQUEUE 0 (requires the scoped NFQUEUE rules and the
+# inline path). NEVER together with Suricata IPS (same queue). Installed DISABLED.
+[Unit]
+Description=ARCHIVIRT Snort 3 IPS (NFQUEUE 0)
+After=network-online.target
+Conflicts=suricata.service snort3-ids@ens6.service snort3-ids@ens7.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p /var/log/snort3/ips
+ExecStart={{ snort3_prefix }}/bin/snort -c /etc/snort3/snort.lua --daq-dir {{ snort3_prefix }}/lib/daq -Q --daq nfq --daq-var queue=0 -l /var/log/snort3/ips
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

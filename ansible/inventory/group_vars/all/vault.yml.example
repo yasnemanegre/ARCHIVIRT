@@ -1,0 +1,42 @@
+---
+# ARCHIVIRT — template for group_vars/all/vault.yml (NEVER commit the real file).
+#
+# ── Initial generation (values are generated, never typed or printed) ──────
+#   umask 077; mkdir -p ~/.archivirt
+#   python3 -c "import secrets;print(secrets.token_urlsafe(32))" > ~/.archivirt/vault_pass
+#   python3 - > /dev/shm/v.yml <<'EOF'
+#   import secrets
+#   print("---")
+#   for k,n in (("vault_influx_token",48),("vault_influx_password",24),
+#               ("vault_grafana_password",24),("vault_grafana_secret_key",32)):
+#       print(f"{k}: {secrets.token_urlsafe(n)}")
+#   EOF
+#   ansible-vault encrypt --vault-password-file ~/.archivirt/vault_pass \
+#       --output ansible/inventory/group_vars/all/vault.yml /dev/shm/v.yml && shred -u /dev/shm/v.yml
+#
+# Use: ansible-playbook ... --vault-password-file ~/.archivirt/vault_pass
+# Back up vault_pass AND vault.yml together (offline encrypted medium).
+# Before editing the vault: cp vault.yml ~/.archivirt/vault.yml.bak-$(date -u +%Y%m%dT%H%M%SZ)
+#
+# ── Rotation ────────────────────────────────────────────────────────────────
+# vault_grafana_password   : automatic. Change the value (ansible-vault edit)
+#                            and re-run deploy_monitoring.yml; the role detects
+#                            that the vault password is not active and resets
+#                            it through `grafana cli` (stdin, not argv).
+# vault_grafana_secret_key : encrypts secrets stored in grafana.db. Changing it
+#                            makes previously stored encrypted values unreadable.
+#                            The role backs up grafana.db before applying a new
+#                            key; the provisioned datasource is re-written at
+#                            start-up. Rollback: restore grafana.db.bak-* and
+#                            the previous vault backup, re-run the role.
+#                            Take a VM snapshot before rotating.
+# vault_influx_token /     : NOT rotated by the role (InfluxDB onboarding runs
+# vault_influx_password      once). Manual procedure, pending decision:
+#                            create a new all-access token in InfluxDB, store it
+#                            in the vault, re-run deploy_monitoring.yml and
+#                            deploy_telegraf.yml (Telegraf + Grafana datasource),
+#                            verify metrics, then revoke the old token.
+vault_influx_token: CHANGE_ME
+vault_influx_password: CHANGE_ME
+vault_grafana_password: CHANGE_ME
+vault_grafana_secret_key: CHANGE_ME

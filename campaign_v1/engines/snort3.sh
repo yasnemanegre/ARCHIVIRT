@@ -14,20 +14,30 @@ MODE="${1:?usage: snort3.sh <ids|ips> <logdir> [iface_csv]}"
 LOGDIR="${2:?missing logdir}"
 IFACES="${3:-ens6,ens7}"
 
+# STEP3.2 (C-1/C-2): exact reference versions; LibDAQ is checked as the LIBRARY actually installed
+# (pkg-config + libdaq.so.3), not as a package name; the Ubuntu "snort" package (Snort 2.9) is refused.
+SNORT3_VERSION="3.1.74.0"; LIBDAQ_VERSION="3.0.13"
 missing=()
-command -v snort >/dev/null 2>&1 || missing+=("snort3-binary")
-dpkg-query -W -f='${Version}' libdaq3 >/dev/null 2>&1 || missing+=("libdaq3")
+if dpkg-query -W -f='${Status}' snort 2>/dev/null | grep 'install ok installed' >/dev/null; then
+    echo "ARCHIVIRT_ENGINE=SNORT2_PACKAGE_PRESENT mode=$MODE (Ubuntu 'snort' = Snort 2.9: refused)"; exit 1
+fi
+got_snort=$( { /usr/local/bin/snort -V 2>&1 || true; } | awk '!v { for (i = 1; i < NF; i++) if ($i == "Version") { v = $(i + 1); break } } END { print v }')
+[ -x /usr/local/bin/snort ] || missing+=("snort3-binary")
+[ -x /usr/local/bin/snort ] && [ "$got_snort" != "$SNORT3_VERSION" ] && missing+=("snort3-version:${got_snort:-unknown}!=$SNORT3_VERSION")
+got_daq=$(PKG_CONFIG_PATH=/usr/local/lib/pkgconfig pkg-config --modversion libdaq 2>/dev/null)
+ldconfig -p 2>/dev/null | grep -q 'libdaq\.so\.3' || missing+=("libdaq3-library")
+[ -n "$got_daq" ] && [ "$got_daq" != "$LIBDAQ_VERSION" ] && missing+=("libdaq-version:$got_daq!=$LIBDAQ_VERSION")
 
 if [ "${#missing[@]}" -gt 0 ]; then
     echo "ARCHIVIRT_ENGINE=SNORT3_NOT_READY_OFFLINE mode=$MODE"
     echo "OFFLINE_ARTIFACT_MISSING=${missing[*]}"
     echo "NOTE=Snort 3 is not installable offline from the current local mirror"
-    echo "NOTE=(mirror provides Snort 2.9 rules + libdaq2 only). No download attempted."
+    echo "NOTE=Sources (snort3 3.1.74.0, libdaq 3.0.13) exist on the host only; build per role ids_snort. No download attempted."
     exit 1
 fi
 
 # --- Provisioned path (only reached once Snort 3 is genuinely installed) ---
-SNORT_VER="$(snort --version 2>/dev/null | grep -oiE 'Version [0-9.]+' | head -1)"
+SNORT_VER="Version $got_snort (LibDAQ $got_daq)"
 echo "ARCHIVIRT_ENGINE=SNORT3_DETECTED $SNORT_VER mode=$MODE"
 # Deliberately NOT starting a campaign engine here: starting Snort 3 for real
 # requires a validated config + qualification first (see master prompt §6/§12).

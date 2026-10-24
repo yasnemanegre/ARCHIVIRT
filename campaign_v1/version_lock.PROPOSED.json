@@ -1,0 +1,571 @@
+{
+ "schema": "archivirt-version-lock/1",
+ "status": "PROPOSED",
+ "note": "Values = what the local mirror serves on 2026-10-20 (observed), NOT an upgrade decision. Must be reviewed and set to APPROVED by the owner before any installation. STEP3.2: repo checks extended (manifest v2 exact versions, ids_snort without Snort 2 / ignore_errors). Profiles snort3-pkg-* intentionally absent until decision D-V3.",
+ "base_image_packages": {},
+ "profiles": {
+  "suricata-ids": {
+   "packages": {
+    "suricata": {
+     "version": "1:6.0.4-3",
+     "arch": "amd64",
+     "sha256": "83084fa67e34d1511d42ad2e832caf335cb17cc55215e6a27568c1205463317f"
+    },
+    "suricata-update": {
+     "version": "1.2.3-1",
+     "arch": "amd64",
+     "sha256": "c9f12bd5b25bf1357835269318d7fd4fbe06d91bfee1fdcadbe26543d88aab6d"
+    },
+    "libhyperscan5": {
+     "version": "5.4.0-2",
+     "arch": "amd64",
+     "sha256": "6c7cfcbcfc5d68a8ae1560b3cba065b3782f407573a094da5ecc0fb354103b87"
+    },
+    "libnetfilter-queue1": {
+     "version": "1.0.5-2",
+     "arch": "amd64",
+     "sha256": "17753fe32e8a31c6b7ae05dee9c31cf3ea4a6559b82373f7230725cab9945020"
+    },
+    "libnfnetlink0": {
+     "version": "1.0.1-3build3",
+     "arch": "amd64",
+     "sha256": "9c7b2e9fa8f60bd1d0a85d5082cdec10ec1aa7be3ad8c0e4265c28cc8e72ec9a"
+    },
+    "libmnl0": {
+     "version": "1.0.4-3build2",
+     "arch": "amd64",
+     "sha256": "e0ed2e88526830896a9efcef75a3d019b40cdac5a56d6605c426296979708f4a"
+    },
+    "libnetfilter-log1": {
+     "version": "1.0.2-1",
+     "arch": "amd64",
+     "sha256": "9d60b183b927eb2ffc6273e1668d0f8787a156cf2932b09c14ce6cdace8eba50"
+    },
+    "libhtp2": {
+     "version": "1:0.5.39-1",
+     "arch": "amd64",
+     "sha256": "b7bd4d5d8a63037ec059d2327c19db99091b222e9411ad67b548b28f35565901"
+    },
+    "libluajit-5.1-2": {
+     "version": "2.1.0~beta3+dfsg-6ubuntu0.1",
+     "arch": "amd64",
+     "sha256": "6da782a03320555016f0d74a0ec76f3f2845e188b21c640b130dfb804e527228"
+    },
+    "libpcre3": {
+     "version": "2:8.39-13ubuntu0.22.04.1",
+     "arch": "amd64",
+     "sha256": "0d1eb051047eb0c637c893f618f45e1d419863bfa3bc821897ee05ad418ba22e"
+    },
+    "libnet1": {
+     "version": "1.1.6+dfsg-3.1build3",
+     "arch": "amd64",
+     "sha256": "192c85efe785863655105a8bffe5f20a6b8dc4bc71b04dd0f50a0a50124b32ef"
+    },
+    "libjansson4": {
+     "version": "2.13.1-1.1build3",
+     "arch": "amd64",
+     "sha256": "4af5e5f18d6a5a701ecad452449494a21004307cac18b9369e26345986de5d4d"
+    },
+    "libyaml-0-2": {
+     "version": "0.2.2-1build2",
+     "arch": "amd64",
+     "sha256": "b137d89a463b671383b6eaec404a494c8bd630a4adb79fc059c3aa48af170dcb"
+    },
+    "libpcap0.8": {
+     "version": "1.10.1-4ubuntu1.22.04.2",
+     "arch": "amd64",
+     "sha256": "ed84d273eaa990737109b37d5b30403e7c7f394ae59e20904cec0f63debfe3fe"
+    },
+    "libcap-ng0": {
+     "version": "0.7.9-2.2build3",
+     "arch": "amd64",
+     "sha256": "124d0c8748a841f279e996298ef8aac69a249e294792f4b5e16dc00496f1d3ac"
+    },
+    "libmaxminddb0": {
+     "version": "1.5.2-1build2",
+     "arch": "amd64",
+     "sha256": "130ee6c9b2cc5d06bc74c38b61397b7e7a7d00bac58ccf2fd4d2952a1f4f9e6a"
+    }
+   },
+   "forbidden": [
+    "snort"
+   ],
+   "repo_checks": [
+    {
+     "id": "manifest-suricata",
+     "file": "campaign_v1/manifest/offline_manifest.json",
+     "must_match": [
+      "\"id\": \"suricata\",[^}]*\"expect_version\": \"6\\.0\\.4\""
+     ]
+    },
+    {
+     "id": "template-ids-afpacket",
+     "file": "ansible/roles/ids_suricata/templates/suricata.yaml.j2",
+     "must_match": [
+      "^af-packet:\\s*$"
+     ],
+     "must_not_match": [
+      "interface:\\s*eth0"
+     ]
+    }
+   ]
+  },
+  "suricata-ips": {
+   "packages": {
+    "suricata": {
+     "version": "1:6.0.4-3",
+     "arch": "amd64",
+     "sha256": "83084fa67e34d1511d42ad2e832caf335cb17cc55215e6a27568c1205463317f"
+    },
+    "suricata-update": {
+     "version": "1.2.3-1",
+     "arch": "amd64",
+     "sha256": "c9f12bd5b25bf1357835269318d7fd4fbe06d91bfee1fdcadbe26543d88aab6d"
+    },
+    "libhyperscan5": {
+     "version": "5.4.0-2",
+     "arch": "amd64",
+     "sha256": "6c7cfcbcfc5d68a8ae1560b3cba065b3782f407573a094da5ecc0fb354103b87"
+    },
+    "libnetfilter-queue1": {
+     "version": "1.0.5-2",
+     "arch": "amd64",
+     "sha256": "17753fe32e8a31c6b7ae05dee9c31cf3ea4a6559b82373f7230725cab9945020"
+    },
+    "libnfnetlink0": {
+     "version": "1.0.1-3build3",
+     "arch": "amd64",
+     "sha256": "9c7b2e9fa8f60bd1d0a85d5082cdec10ec1aa7be3ad8c0e4265c28cc8e72ec9a"
+    },
+    "libmnl0": {
+     "version": "1.0.4-3build2",
+     "arch": "amd64",
+     "sha256": "e0ed2e88526830896a9efcef75a3d019b40cdac5a56d6605c426296979708f4a"
+    },
+    "libnetfilter-log1": {
+     "version": "1.0.2-1",
+     "arch": "amd64",
+     "sha256": "9d60b183b927eb2ffc6273e1668d0f8787a156cf2932b09c14ce6cdace8eba50"
+    },
+    "libhtp2": {
+     "version": "1:0.5.39-1",
+     "arch": "amd64",
+     "sha256": "b7bd4d5d8a63037ec059d2327c19db99091b222e9411ad67b548b28f35565901"
+    },
+    "libluajit-5.1-2": {
+     "version": "2.1.0~beta3+dfsg-6ubuntu0.1",
+     "arch": "amd64",
+     "sha256": "6da782a03320555016f0d74a0ec76f3f2845e188b21c640b130dfb804e527228"
+    },
+    "libpcre3": {
+     "version": "2:8.39-13ubuntu0.22.04.1",
+     "arch": "amd64",
+     "sha256": "0d1eb051047eb0c637c893f618f45e1d419863bfa3bc821897ee05ad418ba22e"
+    },
+    "libnet1": {
+     "version": "1.1.6+dfsg-3.1build3",
+     "arch": "amd64",
+     "sha256": "192c85efe785863655105a8bffe5f20a6b8dc4bc71b04dd0f50a0a50124b32ef"
+    },
+    "libjansson4": {
+     "version": "2.13.1-1.1build3",
+     "arch": "amd64",
+     "sha256": "4af5e5f18d6a5a701ecad452449494a21004307cac18b9369e26345986de5d4d"
+    },
+    "libyaml-0-2": {
+     "version": "0.2.2-1build2",
+     "arch": "amd64",
+     "sha256": "b137d89a463b671383b6eaec404a494c8bd630a4adb79fc059c3aa48af170dcb"
+    },
+    "libpcap0.8": {
+     "version": "1.10.1-4ubuntu1.22.04.2",
+     "arch": "amd64",
+     "sha256": "ed84d273eaa990737109b37d5b30403e7c7f394ae59e20904cec0f63debfe3fe"
+    },
+    "libcap-ng0": {
+     "version": "0.7.9-2.2build3",
+     "arch": "amd64",
+     "sha256": "124d0c8748a841f279e996298ef8aac69a249e294792f4b5e16dc00496f1d3ac"
+    },
+    "libmaxminddb0": {
+     "version": "1.5.2-1build2",
+     "arch": "amd64",
+     "sha256": "130ee6c9b2cc5d06bc74c38b61397b7e7a7d00bac58ccf2fd4d2952a1f4f9e6a"
+    }
+   },
+   "forbidden": [
+    "snort"
+   ],
+   "repo_checks": [
+    {
+     "id": "manifest-suricata",
+     "file": "campaign_v1/manifest/offline_manifest.json",
+     "must_match": [
+      "\"id\": \"suricata\",[^}]*\"expect_version\": \"6\\.0\\.4\""
+     ]
+    },
+    {
+     "id": "template-ips-nfq",
+     "file": "ansible/roles/ids_suricata/templates/suricata.yaml.j2",
+     "must_match": [
+      "^nfq:\\s*$"
+     ],
+     "must_not_match": [
+      "^nfqueue:\\s*$"
+     ]
+    }
+   ]
+  },
+  "snort3-ids": {
+   "packages": {
+    "build-essential": {
+     "version": "12.9ubuntu3",
+     "arch": "amd64",
+     "sha256": "1e464c41488d154b9f5ca19d2e9ac8b18913ae16e3dca713c3ba0223fae2cccc"
+    },
+    "cmake": {
+     "version": "3.22.1-1ubuntu1.22.04.2",
+     "arch": "amd64",
+     "sha256": "55a46b2f9bbc8899ae6772f0313ca2dd88801a514feaa488c88094c4fafa83c5"
+    },
+    "cmake-data": {
+     "version": "3.22.1-1ubuntu1.22.04.2",
+     "arch": "all",
+     "sha256": "0009fa5659c702cb654f868a6d1e7ebd4f8d230092df2f086a32aab2fa00b9ba"
+    },
+    "flex": {
+     "version": "2.6.4-8build2",
+     "arch": "amd64",
+     "sha256": "980674f410fa6cb5e41d1bdf434a9391dcec0ac8fae5194cd90f9598ae074d8d"
+    },
+    "bison": {
+     "version": "2:3.8.2+dfsg-1ubuntu0.22.04.1",
+     "arch": "amd64",
+     "sha256": "40ba998a24ce53a420fc3f8188b833fde276564df1a7e90acaf875f4f9b76c4e"
+    },
+    "pkg-config": {
+     "version": "0.29.2-1ubuntu3",
+     "arch": "amd64",
+     "sha256": "69da4190d948d0bf7444ead040791b7924bd1a08a10ec13cd7f0bb9baab09c53"
+    },
+    "autoconf": {
+     "version": "2.71-2",
+     "arch": "all",
+     "sha256": "96b528889794c4134015a63c75050f93d8aecdf5e3f2a20993c1433f4c61b80e"
+    },
+    "automake": {
+     "version": "1:1.16.5-1.3",
+     "arch": "all",
+     "sha256": "59e3890fc8407bcf8ccc9f709d6513156346d5c942e8c624dc90435e58f6f978"
+    },
+    "libpcap-dev": {
+     "version": "1.10.1-4ubuntu1.22.04.2",
+     "arch": "amd64",
+     "sha256": "f71cff3818aee585eb393b0eb73f0387986fac97407e1cb23f984bf9c92cdded"
+    },
+    "libpcre3-dev": {
+     "version": "2:8.39-13ubuntu0.22.04.1",
+     "arch": "amd64",
+     "sha256": "79762f3fcd3a29ee9c9c0faf61c0d0292b83b9d07e0bd37566401f0e2109ca87"
+    },
+    "libdumbnet-dev": {
+     "version": "1.12-10",
+     "arch": "amd64",
+     "sha256": "219fa4f0b257270414b600de26459be0ffdf0c4025d3d90d5865b669c0c7cdf6"
+    },
+    "libdumbnet1": {
+     "version": "1.12-10",
+     "arch": "amd64",
+     "sha256": "3ed8743bd2bfdc51c884b27d911a63bdce93ad37b3d85dd0ee64a80649aeb1ee"
+    },
+    "libhwloc-dev": {
+     "version": "2.7.0-2ubuntu1",
+     "arch": "amd64",
+     "sha256": "a097a8e4596eb3d40a1f069ceab00ea280c527bcd9917fe3f5ae87ec5cdc1b88"
+    },
+    "libhwloc15": {
+     "version": "2.7.0-2ubuntu1",
+     "arch": "amd64",
+     "sha256": "6749a98e4a12f6f380ee334113cbdc3384a1d8d8af6add254f6557c9a9f9bc28"
+    },
+    "libluajit-5.1-dev": {
+     "version": "2.1.0~beta3+dfsg-6ubuntu0.1",
+     "arch": "amd64",
+     "sha256": "0e9bd4cb2dea67247bd88c5e8fe05b8f25cedb79b7b619dca2e3a8148399afbf"
+    },
+    "libssl-dev": {
+     "version": "3.0.2-0ubuntu1.30",
+     "arch": "amd64",
+     "sha256": "8a47dfa7f9bd4d54ac9dc9a1db14891a9133841bf44f12c3db086f2d4321bac6"
+    },
+    "zlib1g-dev": {
+     "version": "1:1.2.11.dfsg-2ubuntu9.2",
+     "arch": "amd64",
+     "sha256": "679f94589586a433c31fa9f705a6fd2e3bfa2407542ba06227ce14f821647764"
+    },
+    "liblzma-dev": {
+     "version": "5.2.5-2ubuntu1.1",
+     "arch": "amd64",
+     "sha256": "ef7690d90ee4397fa911addc15d72347feb07ccd75c8e18b5a6aa41c33189833"
+    },
+    "libhyperscan-dev": {
+     "version": "5.4.0-2",
+     "arch": "amd64",
+     "sha256": "64033160783945509372bf43fbf2d0947e4788593a70fb3604626f4a0d098a98"
+    },
+    "uuid-dev": {
+     "version": "2.37.2-4ubuntu3.6",
+     "arch": "amd64",
+     "sha256": "bca1cd5ca6b3be8b5d6498fe80b2cb7e2b63040adda7ff40b9ca26eecb825f58"
+    },
+    "libunwind-dev": {
+     "version": "1.3.2-2build2.1",
+     "arch": "amd64",
+     "sha256": "f8a7f63a6663190bf77275626e9ff654505f52ce876aff7e51b976e565ac081f"
+    },
+    "linux-libc-dev": {
+     "version": "5.15.0-198.208",
+     "arch": "amd64",
+     "sha256": "d7ba314f1e0e79745f104eaeeb662723fb72b1d4ab45c923d93db32867dd11e7"
+    },
+    "libltdl-dev": {
+     "version": "2.4.6-15build2",
+     "arch": "amd64",
+     "sha256": "36e1d9ad79d7682bfa585cac5d159b68d29bea0f8dc44ba26ca1556add737ffc"
+    },
+    "libtool": {
+     "version": "TO_BE_IMPORTED (jammy 2.4.6-15build2 expected)",
+     "arch": "all",
+     "sha256": "UNKNOWN"
+    },
+    "libfl-dev": {
+     "version": "TO_BE_IMPORTED (jammy 2.6.4-8build2, = flex; pulls libfl2)",
+     "arch": "amd64",
+     "sha256": "UNKNOWN"
+    }
+   },
+   "sources": {
+    "snort3": {
+     "path": "~/archivirt-offline/src/snort3-3.1.74.0.tar.gz",
+     "version": "3.1.74.0",
+     "sha256": "4a4529e74bc202303c0330ae8b2317f0bef3ac92ae7216df8cfedfce24ddd129"
+    },
+    "libdaq": {
+     "path": "~/archivirt-offline/src/libdaq-3.0.13.tar.gz",
+     "version": "3.0.13",
+     "sha256": "3a48b934bc45a1fe44b3887185d33a76a042c1d10aa177e3e7c417d83da67213"
+    }
+   },
+   "forbidden": [
+    "snort"
+   ],
+   "repo_checks": [
+    {
+     "id": "manifest-snort3",
+     "file": "campaign_v1/manifest/offline_manifest.json",
+     "must_match": [
+      "\"id\": \"snort3\"",
+      "\"id\": \"libdaq3\""
+     ]
+    },
+    {
+     "id": "manifest-v2-snort3-exact",
+     "file": "campaign_v1/manifest/offline_manifest_v2.json",
+     "must_match": [
+      "\"id\": \"snort3\",[^}]*\"expect_version\": \"3\\.1\\.74\\.0\"[^}]*\"version_match\": \"exact\"",
+      "\"id\": \"libdaq3\",[^}]*\"type\": \"library\"[^}]*\"expect_version\": \"3\\.0\\.13\"[^}]*\"version_match\": \"exact\""
+     ]
+    },
+    {
+     "id": "no-snort2-in-ids_snort",
+     "file": "ansible/roles/ids_snort/tasks/main.yml",
+     "must_match": [
+      "Refuse Snort 2"
+     ],
+     "must_not_match": [
+      "^\\s+name:\\s*snort\\s*$",
+      "ignore_errors"
+     ]
+    }
+   ]
+  },
+  "snort3-ips": {
+   "packages": {
+    "build-essential": {
+     "version": "12.9ubuntu3",
+     "arch": "amd64",
+     "sha256": "1e464c41488d154b9f5ca19d2e9ac8b18913ae16e3dca713c3ba0223fae2cccc"
+    },
+    "cmake": {
+     "version": "3.22.1-1ubuntu1.22.04.2",
+     "arch": "amd64",
+     "sha256": "55a46b2f9bbc8899ae6772f0313ca2dd88801a514feaa488c88094c4fafa83c5"
+    },
+    "cmake-data": {
+     "version": "3.22.1-1ubuntu1.22.04.2",
+     "arch": "all",
+     "sha256": "0009fa5659c702cb654f868a6d1e7ebd4f8d230092df2f086a32aab2fa00b9ba"
+    },
+    "flex": {
+     "version": "2.6.4-8build2",
+     "arch": "amd64",
+     "sha256": "980674f410fa6cb5e41d1bdf434a9391dcec0ac8fae5194cd90f9598ae074d8d"
+    },
+    "bison": {
+     "version": "2:3.8.2+dfsg-1ubuntu0.22.04.1",
+     "arch": "amd64",
+     "sha256": "40ba998a24ce53a420fc3f8188b833fde276564df1a7e90acaf875f4f9b76c4e"
+    },
+    "pkg-config": {
+     "version": "0.29.2-1ubuntu3",
+     "arch": "amd64",
+     "sha256": "69da4190d948d0bf7444ead040791b7924bd1a08a10ec13cd7f0bb9baab09c53"
+    },
+    "autoconf": {
+     "version": "2.71-2",
+     "arch": "all",
+     "sha256": "96b528889794c4134015a63c75050f93d8aecdf5e3f2a20993c1433f4c61b80e"
+    },
+    "automake": {
+     "version": "1:1.16.5-1.3",
+     "arch": "all",
+     "sha256": "59e3890fc8407bcf8ccc9f709d6513156346d5c942e8c624dc90435e58f6f978"
+    },
+    "libpcap-dev": {
+     "version": "1.10.1-4ubuntu1.22.04.2",
+     "arch": "amd64",
+     "sha256": "f71cff3818aee585eb393b0eb73f0387986fac97407e1cb23f984bf9c92cdded"
+    },
+    "libpcre3-dev": {
+     "version": "2:8.39-13ubuntu0.22.04.1",
+     "arch": "amd64",
+     "sha256": "79762f3fcd3a29ee9c9c0faf61c0d0292b83b9d07e0bd37566401f0e2109ca87"
+    },
+    "libdumbnet-dev": {
+     "version": "1.12-10",
+     "arch": "amd64",
+     "sha256": "219fa4f0b257270414b600de26459be0ffdf0c4025d3d90d5865b669c0c7cdf6"
+    },
+    "libdumbnet1": {
+     "version": "1.12-10",
+     "arch": "amd64",
+     "sha256": "3ed8743bd2bfdc51c884b27d911a63bdce93ad37b3d85dd0ee64a80649aeb1ee"
+    },
+    "libhwloc-dev": {
+     "version": "2.7.0-2ubuntu1",
+     "arch": "amd64",
+     "sha256": "a097a8e4596eb3d40a1f069ceab00ea280c527bcd9917fe3f5ae87ec5cdc1b88"
+    },
+    "libhwloc15": {
+     "version": "2.7.0-2ubuntu1",
+     "arch": "amd64",
+     "sha256": "6749a98e4a12f6f380ee334113cbdc3384a1d8d8af6add254f6557c9a9f9bc28"
+    },
+    "libluajit-5.1-dev": {
+     "version": "2.1.0~beta3+dfsg-6ubuntu0.1",
+     "arch": "amd64",
+     "sha256": "0e9bd4cb2dea67247bd88c5e8fe05b8f25cedb79b7b619dca2e3a8148399afbf"
+    },
+    "libssl-dev": {
+     "version": "3.0.2-0ubuntu1.30",
+     "arch": "amd64",
+     "sha256": "8a47dfa7f9bd4d54ac9dc9a1db14891a9133841bf44f12c3db086f2d4321bac6"
+    },
+    "zlib1g-dev": {
+     "version": "1:1.2.11.dfsg-2ubuntu9.2",
+     "arch": "amd64",
+     "sha256": "679f94589586a433c31fa9f705a6fd2e3bfa2407542ba06227ce14f821647764"
+    },
+    "liblzma-dev": {
+     "version": "5.2.5-2ubuntu1.1",
+     "arch": "amd64",
+     "sha256": "ef7690d90ee4397fa911addc15d72347feb07ccd75c8e18b5a6aa41c33189833"
+    },
+    "libhyperscan-dev": {
+     "version": "5.4.0-2",
+     "arch": "amd64",
+     "sha256": "64033160783945509372bf43fbf2d0947e4788593a70fb3604626f4a0d098a98"
+    },
+    "uuid-dev": {
+     "version": "2.37.2-4ubuntu3.6",
+     "arch": "amd64",
+     "sha256": "bca1cd5ca6b3be8b5d6498fe80b2cb7e2b63040adda7ff40b9ca26eecb825f58"
+    },
+    "libunwind-dev": {
+     "version": "1.3.2-2build2.1",
+     "arch": "amd64",
+     "sha256": "f8a7f63a6663190bf77275626e9ff654505f52ce876aff7e51b976e565ac081f"
+    },
+    "linux-libc-dev": {
+     "version": "5.15.0-198.208",
+     "arch": "amd64",
+     "sha256": "d7ba314f1e0e79745f104eaeeb662723fb72b1d4ab45c923d93db32867dd11e7"
+    },
+    "libltdl-dev": {
+     "version": "2.4.6-15build2",
+     "arch": "amd64",
+     "sha256": "36e1d9ad79d7682bfa585cac5d159b68d29bea0f8dc44ba26ca1556add737ffc"
+    },
+    "libtool": {
+     "version": "TO_BE_IMPORTED (jammy 2.4.6-15build2 expected)",
+     "arch": "all",
+     "sha256": "UNKNOWN"
+    },
+    "libmnl-dev": {
+     "version": "TO_BE_IMPORTED (jammy 1.0.4-3build2, must equal libmnl0)",
+     "arch": "amd64",
+     "sha256": "UNKNOWN"
+    },
+    "libfl-dev": {
+     "version": "TO_BE_IMPORTED (jammy 2.6.4-8build2, = flex; pulls libfl2)",
+     "arch": "amd64",
+     "sha256": "UNKNOWN"
+    }
+   },
+   "sources": {
+    "snort3": {
+     "path": "~/archivirt-offline/src/snort3-3.1.74.0.tar.gz",
+     "version": "3.1.74.0",
+     "sha256": "4a4529e74bc202303c0330ae8b2317f0bef3ac92ae7216df8cfedfce24ddd129"
+    },
+    "libdaq": {
+     "path": "~/archivirt-offline/src/libdaq-3.0.13.tar.gz",
+     "version": "3.0.13",
+     "sha256": "3a48b934bc45a1fe44b3887185d33a76a042c1d10aa177e3e7c417d83da67213"
+    }
+   },
+   "forbidden": [
+    "snort"
+   ],
+   "repo_checks": [
+    {
+     "id": "manifest-snort3",
+     "file": "campaign_v1/manifest/offline_manifest.json",
+     "must_match": [
+      "\"id\": \"snort3\"",
+      "\"id\": \"libdaq3\""
+     ]
+    },
+    {
+     "id": "manifest-v2-snort3-exact",
+     "file": "campaign_v1/manifest/offline_manifest_v2.json",
+     "must_match": [
+      "\"id\": \"snort3\",[^}]*\"expect_version\": \"3\\.1\\.74\\.0\"[^}]*\"version_match\": \"exact\"",
+      "\"id\": \"libdaq3\",[^}]*\"type\": \"library\"[^}]*\"expect_version\": \"3\\.0\\.13\"[^}]*\"version_match\": \"exact\""
+     ]
+    },
+    {
+     "id": "no-snort2-in-ids_snort",
+     "file": "ansible/roles/ids_snort/tasks/main.yml",
+     "must_match": [
+      "Refuse Snort 2"
+     ],
+     "must_not_match": [
+      "^\\s+name:\\s*snort\\s*$",
+      "ignore_errors"
+     ]
+    }
+   ]
+  }
+ }
+}

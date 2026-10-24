@@ -26,6 +26,7 @@ Usage:
 """
 
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -262,6 +263,9 @@ def main():
 
     # --- Run status -------------------------------------------------------
     expect_detection = EXPECTED_DETECTION.get(scenario, True)
+    # Scoring (P2-VAL2 proposal): "article2" (default, unchanged) makes a missed detection INVALID; "p2" keeps the
+    # run VALID with classification FN, so that validity reflects the run's technical conditions, not its outcome.
+    scoring = os.environ.get("ARCHIVIRT_SCORING", "article2")
 
     if prereq_missing:
         run_status = "PREREQUISITE_MISSING"
@@ -275,7 +279,7 @@ def main():
     elif not event_collected:
         run_status = "INVALID"
         invalid_reason = "no valid Suricata EVE event collected"
-    elif expect_detection and not detection_status:
+    elif expect_detection and not detection_status and scoring != "p2":
         run_status = "INVALID"
         invalid_reason = "attack scenario produced no matching EVE alert"
     else:

@@ -1,0 +1,21 @@
+# ARCHIVIRT P2 IPS rules (phase 2, series {{ archivirt_experiment_series }}) - NEW ruleset, clearly identified.
+# Derived from archivirt-ips.rules.j2 (frozen with article2-frozen-v1, left untouched) with ONE functional
+# change: rate-based rules use detection_filter (the rule only MATCHES - hence only DROPS - beyond the rate),
+# instead of "threshold" (which in Suricata only limits ALERTS: the former SYN rule without any limit dropped
+# every TCP SYN, i.e. all legitimate connections - observed 2026-10-20, ips.blocked = every legit attempt).
+# New SID range 2110000-2110099 so that results of the two rulesets can never be mixed.
+
+# TCP SYN scan: > 20 SYN from one source in 2 s
+drop tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ARCHIVIRT P2 IPS SYN scan rate"; flags:S; detection_filter:track by_src, count 20, seconds 2; classtype:network-scan; sid:2110001; rev:1;)
+# SSH brute-force: > 5 connections to SSH from one source in 30 s
+drop tcp $EXTERNAL_NET any -> $SSH_SERVERS $SSH_PORTS (msg:"ARCHIVIRT P2 IPS SSH brute-force rate"; flags:S; detection_filter:track by_src, count 5, seconds 30; classtype:attempted-user; sid:2110010; rev:1;)
+# HTTP SQL injection (content based, unchanged)
+drop http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT P2 IPS HTTP SQLi UNION"; flow:to_server,established; http.uri; content:"UNION"; nocase; classtype:web-application-attack; sid:2110020; rev:1;)
+drop http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT P2 IPS HTTP SQLi Boolean"; flow:to_server,established; http.uri; content:"OR%201%3D1"; nocase; classtype:web-application-attack; sid:2110021; rev:1;)
+drop http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT P2 IPS HTTP SQLi SLEEP"; flow:to_server,established; http.uri; content:"SLEEP%28"; nocase; classtype:web-application-attack; sid:2110022; rev:1;)
+drop http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT P2 IPS sqlmap UA"; flow:to_server,established; http.user_agent; content:"sqlmap"; classtype:web-application-attack; sid:2110023; rev:1;)
+# HTTP SYN flood: > 100 SYN to one server in 10 s
+drop tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT P2 IPS HTTP SYN flood"; flags:S; detection_filter:track by_dst, count 100, seconds 10; classtype:denial-of-service; sid:2110030; rev:1;)
+# FTP brute-force / SMB scan: > 5 new connections from one source
+drop tcp $EXTERNAL_NET any -> $FTP_SERVERS $FTP_PORTS (msg:"ARCHIVIRT P2 IPS FTP brute-force rate"; flags:S; detection_filter:track by_src, count 5, seconds 30; classtype:attempted-user; sid:2110040; rev:1;)
+drop tcp $EXTERNAL_NET any -> $HOME_NET 445 (msg:"ARCHIVIRT P2 IPS SMB scan rate"; flags:S; detection_filter:track by_src, count 5, seconds 10; classtype:network-scan; sid:2110050; rev:1;)

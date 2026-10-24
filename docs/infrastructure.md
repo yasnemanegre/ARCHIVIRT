@@ -28,7 +28,7 @@
 
 ## Monitoring Stack
 - **Telegraf** → monitor-ids + manager → **InfluxDB** (10.0.5.10:8086)
-- **Grafana** → http://10.0.5.10:3000 (admin/yasnemanegre)
+- **Grafana** (optional, `archivirt_grafana_enabled`) → http://10.0.5.10:3000 — authentication required; credentials in ansible-vault (`group_vars/all/vault.yml`), never documented in clear
 - **Route**: monitor-ids → manager via 10.0.3.1 (netplan persistent)
 
 ## Terraform Variables

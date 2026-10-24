@@ -69,3 +69,13 @@ terraform/terraform.tfvars
 # referenced from RESULTS.md). These re-exclusions must follow the negations.
 results/campaign-v1/**/eve.json
 results/campaign-v1/**/*_raw.txt
+
+# --- Offline remediation 2026-10-17 -----------------------------------------
+# Real ansible-vault file (secrets) is never committed; the template is.
+ansible/inventory/group_vars/all/vault.yml
+# Terraform provider lock file must be tracked (pins dmacvicar/libvirt + hashes)
+!terraform/.terraform.lock.hcl
+# Disposable offline-rebuild validation environment (separate state, never committed)
+terraform/validation/.terraform/
+terraform/validation/terraform.tfstate*
+terraform/validation/*.tfplan

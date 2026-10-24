@@ -1,0 +1,63 @@
+---
+# ARCHIVIRT — transit filter on the monitor (D-10). Monitor only; never the host, never site.yml.
+#   apply : ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/inline_transit_filter.yml
+#   remove: ... -e archivirt_inline_filter_state=absent   (refused while net.ipv4.ip_forward=1)
+- name: ARCHIVIRT - monitor transit filter (table inet archivirt_inline)
+  hosts: monitor
+  become: true
+  gather_facts: false
+  vars:
+    filter_state: "{{ archivirt_inline_filter_state | default('present') }}"
+    filter_src: "{{ archivirt_project_dir }}/ansible/files/archivirt-inline-filter.nft"
+    unit_src: "{{ archivirt_project_dir }}/ansible/files/archivirt-inline-filter.service"
+  tasks:
+    - name: Mode check
+      ansible.builtin.assert:
+        that: filter_state in ['present', 'absent']
+        quiet: true
+
+    - name: Install, syntax-check (nft -c) and load the filter
+      when: filter_state == 'present'
+      block:
+        - name: Install the filter definition
+          ansible.builtin.copy: { src: "{{ filter_src }}", dest: /etc/archivirt/archivirt-inline-filter.nft, owner: root, group: root, mode: "0644" }
+          register: filter_file
+        - name: Syntax check
+          ansible.builtin.command: nft -c -f /etc/archivirt/archivirt-inline-filter.nft
+          changed_when: false
+        - name: Install the unit (no ExecStop)
+          ansible.builtin.copy: { src: "{{ unit_src }}", dest: /etc/systemd/system/archivirt-inline-filter.service, owner: root, group: root, mode: "0644" }
+          register: filter_unit
+        - name: Enable and load (atomic reload when the definition changed)
+          ansible.builtin.systemd:
+            name: archivirt-inline-filter
+            daemon_reload: true
+            enabled: true
+            state: "{{ 'restarted' if (filter_file is changed or filter_unit is changed) else 'started' }}"
+        - name: Exactly one table, policy drop
+          ansible.builtin.shell: |
+            set -euo pipefail
+            [ "$(nft list tables | grep -c 'inet archivirt_inline')" = 1 ]
+            nft list chain inet archivirt_inline forward | grep -q 'policy drop'
+          args: { executable: /bin/bash }
+          changed_when: false
+
+    - name: Removal (only while forwarding is off)
+      when: filter_state == 'absent'
+      block:
+        - name: Refuse removal while the monitor forwards
+          ansible.builtin.command: sysctl -n net.ipv4.ip_forward
+          register: fwd
+          changed_when: false
+          failed_when: fwd.stdout != '0'
+        - name: Disable the unit
+          ansible.builtin.systemd: { name: archivirt-inline-filter, enabled: false, daemon_reload: true }
+          failed_when: false
+        - name: Delete the table
+          ansible.builtin.shell: nft list tables | grep -q 'inet archivirt_inline' && nft delete table inet archivirt_inline || true
+          args: { executable: /bin/bash }
+        - name: Remove files
+          ansible.builtin.file: { path: "{{ item }}", state: absent }
+          loop: [/etc/systemd/system/archivirt-inline-filter.service, /etc/archivirt/archivirt-inline-filter.nft]
+        - name: Reload systemd
+          ansible.builtin.systemd: { daemon_reload: true }

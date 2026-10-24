@@ -1,0 +1,11 @@
+---
+# ARCHIVIRT — targeted Snort 3 deployment (role ids_snort only; never site.yml).
+# Mandatory (no default, the role refuses otherwise):
+#   -e ids_mode=ids|ips -e snort3_install_method=source|package
+#   -e archivirt_version_lock=/home/archivirt/ARCHIVIRT/campaign_v1/version_lock.json   (APPROVED lock)
+# Units are installed DISABLED; engines are started by the campaign / validation procedure only.
+- name: ARCHIVIRT - Snort 3 (3.1.74.0 + LibDAQ 3.0.13) on the monitor
+  hosts: monitor
+  become: true
+  roles:
+    - ids_snort

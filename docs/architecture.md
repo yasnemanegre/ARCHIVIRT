@@ -31,7 +31,7 @@ repository — no manual step is required between `git clone` and a running test
 | Role | Subnet | VMs | Services |
 |------|--------|-----|----------|
 | Targets | 10.0.2.0/24 | 3 × (2 vCPU, 4 GB) | DVWA v1.10, OpenSSH 8.9, Samba 4.15.9 |
-| Monitor | 10.0.3.0/24 | 1 × (2 vCPU, 4 GB) | Snort 3.12.2.0 / Suricata 6.0.4 (passive IDS) |
+| Monitor | 10.0.3.0/24 | 1 × (2 vCPU, 4 GB) | Snort 3.1.74.0 / Suricata 6.0.4 (passive IDS) |
 | Attacker | 10.0.4.0/24 | 1 × (2 vCPU, 4 GB) | Nmap, sqlmap, Slowloris, tcpreplay |
 | Manager | 10.0.5.0/24 | 1 × (2 vCPU, 4 GB) | Telegraf, result aggregation |
 

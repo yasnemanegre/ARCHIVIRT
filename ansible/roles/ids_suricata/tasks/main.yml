@@ -5,13 +5,25 @@
 # Monitoring interface: ens4 (tap on target subnet 10.0.2.0/24)
 # ─────────────────────────────────────────────────────────────
 
-- name: Install Suricata from Ubuntu universe
+- name: Preconditions (proposal C1.3) - series, mode and capture interfaces
+  ansible.builtin.assert:
+    that:
+      - archivirt_experiment_series is defined
+      - archivirt_experiment_series | length > 0
+      - not (archivirt_experiment_series | lower).startswith('article')
+      - ids_mode | default('ids') in ['ids', 'ips']
+      - (ids_capture_interfaces | default('ens6,ens7')).split(',') | map('trim') | reject('equalto', '') | list | length > 0
+      - (ids_capture_interfaces | default('ens6,ens7')).split(',') | map('trim') | list | intersect(['lo', 'ens3', 'ens4', 'ens5']) | length == 0
+    fail_msg: "archivirt_experiment_series required (D-A1, never ARTICLE* in any case), ids_mode ids|ips, capture interfaces must exclude lo/ens3/ens4/ens5"
+    quiet: true
+
+- name: Install Suricata (pinned, local mirror only)
   ansible.builtin.apt:
-    name: suricata
+    name: "suricata={{ ids_suricata_version | default('1:6.0.4-3') }}"
     state: present
     update_cache: yes
 
-- name: Create Suricata log directories
+- name: Directories (logs, candidates, provenance, backups)
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -22,48 +34,156 @@
     - /var/log/suricata
     - /var/log/suricata/pcap
     - /etc/suricata/rules
+    - /etc/suricata/archivirt-candidate
+    - /etc/suricata/archivirt-candidate/rules
+    - /etc/archivirt
+    - /var/backups/archivirt/suricata
 
-- name: Deploy Suricata main configuration
-  ansible.builtin.template:
-    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/templates/suricata.yaml.j2"
-    dest: /etc/suricata/suricata.yaml
-    owner: root
-    group: root
-    mode: "0644"
-
-- name: Deploy ARCHIVIRT local Suricata rules
+- name: Candidate ARCHIVIRT local rules (prepared separately, never written to the active path here)
   ansible.builtin.template:
     src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/templates/archivirt-local.rules.j2"
-    dest: /etc/suricata/rules/archivirt-local.rules
+    dest: /etc/suricata/archivirt-candidate/rules/archivirt-local.rules
     owner: root
     group: root
     mode: "0644"
-- name: Deploy ARCHIVIRT dedicated IPS rules
+
+- name: Candidate ARCHIVIRT IPS rules (IPS mode)
   ansible.builtin.template:
-    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/templates/archivirt-ips.rules.j2"
-    dest: /etc/suricata/rules/archivirt-ips.rules
+    # mission 2026-10-20: phase-2 IPS ruleset by default (the frozen archivirt-ips.rules.j2 stays selectable)
+    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/templates/{{ ids_ips_rules_template | default('archivirt-p2-ips.rules.j2') }}"
+    dest: /etc/suricata/archivirt-candidate/rules/archivirt-ips.rules
     owner: root
     group: root
     mode: "0644"
   when: ids_mode | default('ids') == 'ips'
 
-- name: Configure passive IDS capture interfaces
-  ansible.builtin.shell: |
-    set -e
-    for iface in $(echo "{{ ids_capture_interfaces | default('ens6,ens7') }}" | tr ',' ' '); do
-      ip link set "$iface" up
-      ip link set "$iface" promisc on
-    done
+- name: No stale IPS candidate in IDS mode
+  ansible.builtin.file:
+    path: /etc/suricata/archivirt-candidate/rules/archivirt-ips.rules
+    state: absent
   when: ids_mode | default('ids') == 'ids'
-  changed_when: true
 
-- name: Disable passive IDS capture interfaces in IPS mode
+- name: Candidate Suricata configuration
+  ansible.builtin.template:
+    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/templates/suricata.yaml.j2"
+    dest: /etc/suricata/archivirt-candidate/suricata.yaml
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Stage the packaged rule files referenced by the candidate configuration (validation only)
+  # Mission 2026-10-20: the candidate is validated with default-rule-path=<candidate>/rules, but the
+  # template also references the *-events.rules shipped by the Suricata package in /etc/suricata/rules.
+  # They are copied (unchanged) next to the candidate rules so that "suricata -T" sees the real set;
+  # they are NOT in the promote tool's FILES list, so nothing active is replaced by this task.
   ansible.builtin.shell: |
-    for iface in $(echo "{{ ids_capture_interfaces | default('ens6,ens7') }}" | tr ',' ' '); do
-      ip link set "$iface" promisc off || true
+    set -euo pipefail
+    cand=/etc/suricata/archivirt-candidate
+    missing=0
+    for f in $(sed -n '/^rule-files:/,/^[^ -]/p' "$cand/suricata.yaml" | awk '/^ *- /{print $2}'); do
+      case "$f" in archivirt-*) continue;; esac
+      if [ -f "/etc/suricata/rules/$f" ]; then cmp -s "/etc/suricata/rules/$f" "$cand/rules/$f" || { cp -p "/etc/suricata/rules/$f" "$cand/rules/$f"; echo "staged $f"; }
+      else echo "MISSING packaged rule file: $f" >&2; missing=1; fi
     done
+    exit $missing
+  args: { executable: /bin/bash }
+  register: staged_packaged_rules
+  changed_when: "'staged' in staged_packaged_rules.stdout"
+
+- name: Install the validate-then-promote tool
+  ansible.builtin.copy:
+    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/files/archivirt-suricata-promote.sh"
+    dest: /usr/local/sbin/archivirt-suricata-promote.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Validate candidates, back up and promote (nothing active changes if validation fails; restore on post-check failure)
+  ansible.builtin.command: /usr/local/sbin/archivirt-suricata-promote.sh
+  register: ids_promote
+  changed_when: ids_promote.stdout is search('^promoted ')
+
+- name: Record the IDS mode for the capture helper (/etc/archivirt/ids-mode)
+  ansible.builtin.copy:
+    dest: /etc/archivirt/ids-mode
+    content: "{{ ids_mode | default('ids') }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: ids_modefile
+
+- name: Install the capture-interface helper (mode-aware, refuses mgmt/inline ifaces and IPv4)
+  ansible.builtin.copy:
+    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/files/archivirt-capture-ifaces.sh"
+    dest: /usr/local/sbin/archivirt-capture-ifaces.sh
+    owner: root
+    group: root
+    mode: "0755"
+  register: ids_ifaces_script
+
+- name: Capture-interface unit (explicit arguments, no shell variables; helper re-checks the mode)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/archivirt-capture-ifaces.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=ARCHIVIRT IDS capture interfaces (IDS mode only; link up + promisc, no IP)
+      After=network-online.target
+      Wants=network-online.target
+      Before=suricata.service
+      ConditionPathExists=/etc/archivirt/ids-mode
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/sbin/archivirt-capture-ifaces.sh enable {{ (ids_capture_interfaces | default('ens6,ens7')).split(',') | map('trim') | join(' ') }}
+      [Install]
+      WantedBy=multi-user.target
+  register: ids_ifaces_unit
+
+- name: IDS mode - capture unit enabled and (re)started when its inputs changed
+  ansible.builtin.systemd:
+    name: archivirt-capture-ifaces
+    daemon_reload: true
+    enabled: true
+    state: "{{ 'restarted' if (ids_ifaces_unit is changed or ids_ifaces_script is changed or ids_modefile is changed) else 'started' }}"
+  when: ids_mode | default('ids') == 'ids'
+
+- name: IPS mode - capture unit stopped and disabled
+  ansible.builtin.systemd:
+    name: archivirt-capture-ifaces
+    daemon_reload: true
+    enabled: false
+    state: stopped
   when: ids_mode | default('ids') == 'ips'
-  changed_when: true
+
+- name: IPS mode - stop an engine still running in af-packet mode (its sockets keep the capture interfaces promiscuous)
+  # mission 2026-10-20: without this, "promisc off" cannot be verified while the IDS engine runs (ordering defect);
+  # the engine is restarted in NFQUEUE mode by the service task below.
+  ansible.builtin.shell: |
+    set -euo pipefail
+    pid=$(systemctl show suricata -p MainPID --value)
+    if [ -n "$pid" ] && [ "$pid" != 0 ] && tr '\0' ' ' < /proc/$pid/cmdline | grep -- '--af-packet' >/dev/null; then
+      systemctl stop suricata; echo "stopped af-packet engine $pid"
+    fi
+  args: { executable: /bin/bash }
+  register: ids_stop_afpacket
+  changed_when: "'stopped' in ids_stop_afpacket.stdout"
+  when: ids_mode | default('ids') == 'ips'
+
+- name: IPS mode - capture interfaces made non-promiscuous (verified)
+  ansible.builtin.command: /usr/local/sbin/archivirt-capture-ifaces.sh disable {{ (ids_capture_interfaces | default('ens6,ens7')).split(',') | map('trim') | join(' ') }}
+  register: ids_ifaces_disable
+  changed_when: false
+  when: ids_mode | default('ids') == 'ips'
+
+- name: IPS mode - detect a capture unit still enabled (must be disabled)
+  ansible.builtin.command: systemctl is-enabled archivirt-capture-ifaces
+  register: ids_ifaces_enabled
+  changed_when: false
+  failed_when: ids_ifaces_enabled.stdout == 'enabled'
+  when: ids_mode | default('ids') == 'ips'
 
 - name: Configure scoped NFQUEUE rules for IPS mode
   ansible.builtin.shell: |
@@ -92,23 +212,66 @@
   changed_when: true
 
 
-- name: Configure Suricata service command (IDS vs IPS)
-  ansible.builtin.lineinfile:
-    path: /lib/systemd/system/suricata.service
-    regexp: "^ExecStart="
-    line: "ExecStart=/usr/bin/suricata -D {% if ids_mode | default('ids') == 'ips' %}-q 0{% else %}--af-packet{% endif %} -c /etc/suricata/suricata.yaml --pidfile /run/suricata.pid"
+- name: Suricata drop-in directory (package unit file left untouched)
+  ansible.builtin.file:
+    path: /etc/systemd/system/suricata.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
 
+- name: Suricata service command via drop-in (IDS vs IPS)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/suricata.service.d/archivirt.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/suricata -D {% if ids_mode | default('ids') == 'ips' %}-q 0{% else %}--af-packet{% endif %} -c /etc/suricata/suricata.yaml --pidfile /run/suricata.pid
+      # mission 2026-10-20: the packaged ExecStop/ExecReload use suricatasc (unix socket, disabled in the
+      # ARCHIVIRT configuration) -> every stop left the unit 'failed'. Default stop = SIGTERM (clean flush);
+      # reload = SIGUSR2 (rule reload).
+      ExecStop=
+      ExecReload=
+      ExecReload=/bin/kill -USR2 $MAINPID
+  register: ids_dropin
+
+- name: Final check of the ACTIVE configuration before any (re)start
+  ansible.builtin.command: /usr/bin/suricata -T -c /etc/suricata/suricata.yaml -l /tmp
+  changed_when: false
 
 - name: Reload systemd daemon
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Enable Suricata service
+- name: Enable Suricata service (restart only when the active configuration, mode or drop-in changed)
   ansible.builtin.systemd:
     name: suricata
-    daemon_reload: true
     enabled: true
-    state: restarted
+    state: "{{ 'restarted' if (ids_promote is changed or ids_dropin is changed or ids_modefile is changed) else 'started' }}"
+
+- name: Install the IDS provenance recorder
+  ansible.builtin.copy:
+    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/files/archivirt-ids-provenance.py"
+    dest: /usr/local/sbin/archivirt-ids-provenance.py
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Record SHA-256 of the deployed IDS artefacts (/etc/archivirt/ids-provenance.json)
+  ansible.builtin.shell: >-
+    /usr/local/sbin/archivirt-ids-provenance.py
+    --series {{ archivirt_experiment_series | quote }}
+    --out /etc/archivirt/ids-provenance.json
+    /etc/suricata/suricata.yaml /etc/suricata/rules/archivirt-local.rules
+    {{ '/etc/suricata/rules/archivirt-ips.rules' if ids_mode | default('ids') == 'ips' else '' }}
+    /etc/systemd/system/suricata.service.d/archivirt.conf
+    /etc/archivirt/ids-mode
+    /usr/local/sbin/archivirt-capture-ifaces.sh /etc/systemd/system/archivirt-capture-ifaces.service
+  register: ids_prov
+  changed_when: "'updated' in ids_prov.stdout"
 
 - name: Verify Suricata is running
   ansible.builtin.command: systemctl is-active suricata
@@ -155,7 +318,6 @@
     enabled: true
     state: started
   when: false
-  ignore_errors: yes
 
 - name: Disable IPS Enforcer service (IDS mode)
   ansible.builtin.systemd:
@@ -163,25 +325,30 @@
     enabled: false
     state: stopped
   when: ids_mode | default('ids') == 'ids'
-  ignore_errors: yes
+  register: ips_enforcer_disable
+  # STEP3.2: only an ABSENT unit is tolerated (nothing to disable); any other error fails the role.
+  failed_when: ips_enforcer_disable.failed | default(false) and 'Could not find the requested service' not in (ips_enforcer_disable.msg | default(''))
 
-- name: Install Telegraf on monitor-ids
+# Telegraf on monitor-ids is owned by playbooks/deploy_telegraf.yml (pinned, validated,
+# root:telegraf 0640). Legacy tasks below are disabled unless ids_manage_telegraf=true.
+- name: Install Telegraf on monitor-ids (legacy, disabled by default)
   ansible.builtin.apt:
-    name: telegraf
+    name: "telegraf={{ monitoring_versions.telegraf }}"
     state: present
-  ignore_errors: yes
+  when: ids_manage_telegraf | default(false) | bool
 
 - name: Deploy Telegraf monitor-ids configuration
   ansible.builtin.copy:
     src: "{{ archivirt_project_dir }}/monitoring/telegraf-monitor.conf"
     dest: /etc/telegraf/telegraf.conf
-    owner: telegraf
+    owner: root
     group: telegraf
-    mode: "0644"
+    mode: "0640"
+  when: ids_manage_telegraf | default(false) | bool
 
-- name: Enable and start Telegraf on monitor-ids
+- name: Enable and start Telegraf on monitor-ids (legacy, disabled by default)
   ansible.builtin.systemd:
     name: telegraf
     enabled: true
     state: restarted
-  ignore_errors: yes
+  when: ids_manage_telegraf | default(false) | bool

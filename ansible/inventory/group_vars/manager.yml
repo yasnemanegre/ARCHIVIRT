@@ -1,0 +1,3 @@
+---
+# Local APT mirror as seen from the manager (gateway of archivirt-net-manager).
+archivirt_mirror_url: "http://10.0.5.1:8080"

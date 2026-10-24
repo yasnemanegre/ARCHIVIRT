@@ -105,8 +105,8 @@ cd ~/ARCHIVIRT
 ansible-playbook ansible/playbooks/setup_host.yml -i localhost,
 
 # 7b. Password hash for VM console access
-python3 -c "import crypt; print('ubuntu_password_hash = \"' + \
-  crypt.crypt('archivirt123', crypt.mksalt(crypt.METHOD_SHA512)) + '\"')" \
+python3 -c "import crypt, getpass; print('ubuntu_password_hash = \"' + \
+  crypt.crypt(getpass.getpass('New console password: '), crypt.mksalt(crypt.METHOD_SHA512)) + '\"')" \
   > terraform/terraform.tfvars
 
 # 7c. SSH key pair
@@ -181,9 +181,11 @@ sudo ip route add 10.0.5.0/24 dev virbr1 src 10.0.5.1
 ```
 
 ### Snort fails: libdumbnet.so.1 not found
-Ansible pre-flight installs deps automatically. Manual fix:
+Snort 3.1.74.0 is installed by the role `ids_snort` (LibDAQ 3.0.13 + Snort 3 from the verified local
+sources, or the pinned local package), never from the Ubuntu package `snort` (= Snort 2.9). `libdaq2`
+is the DAQ of Snort 2 and must NOT be installed. Check what is actually loaded:
 ```bash
-ssh ubuntu@10.0.3.10 "sudo apt-get install -y libdumbnet1 libhwloc15 libdaq2"
+ssh ubuntu@10.0.3.10 "/usr/local/bin/snort -V; PKG_CONFIG_PATH=/usr/local/lib/pkgconfig pkg-config --modversion libdaq; ldd /usr/local/bin/snort | grep -E 'dumbnet|daq'"
 ```
 
 ### cloud-init install_monitor.sh failed

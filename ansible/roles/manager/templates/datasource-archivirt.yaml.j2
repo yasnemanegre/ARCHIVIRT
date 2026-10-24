@@ -1,0 +1,17 @@
+# Managed by Ansible (role manager). Do not edit on the host.
+apiVersion: 1
+datasources:
+  - name: {{ grafana_datasource_name }}
+    uid: {{ grafana_datasource_uid }}
+    type: influxdb
+    access: proxy
+    url: {{ influx_url_local }}
+    isDefault: true
+    editable: false
+    jsonData:
+      version: Flux
+      organization: {{ influx_org }}
+      defaultBucket: {{ influx_bucket }}
+      tlsSkipVerify: false
+    secureJsonData:
+      token: {{ influx_token }}

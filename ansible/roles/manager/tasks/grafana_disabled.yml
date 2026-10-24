@@ -1,0 +1,27 @@
+---
+# ─────────────────────────────────────────────────────────────
+# Grafana (disabled): archivirt_grafana_enabled=false
+# Stops and disables the UI if it is installed. The package, its database
+# and its configuration are preserved (re-enabling restores the same state).
+# InfluxDB and Telegraf are not affected.
+# ─────────────────────────────────────────────────────────────
+
+- name: Detect an installed Grafana unit
+  ansible.builtin.command: systemctl list-unit-files grafana-server.service --no-legend
+  register: grafana_unit
+  changed_when: false
+  failed_when: false
+
+- name: Stop and disable Grafana (package and data kept)
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: false
+    state: stopped
+  when: grafana_unit.stdout is search('grafana-server.service')
+
+- name: Grafana port 3000 is closed
+  ansible.builtin.wait_for:
+    port: 3000
+    host: 127.0.0.1
+    state: stopped
+    timeout: 30

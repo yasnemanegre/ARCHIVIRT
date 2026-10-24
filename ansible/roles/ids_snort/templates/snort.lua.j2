@@ -1,0 +1,41 @@
+-- ARCHIVIRT Snort {{ snort3_version }} configuration (role ids_snort). Managed by Ansible.
+-- Interfaces and DAQ are given on the command line by the service units (passive afpacket on the
+-- capture interfaces in IDS mode, NFQUEUE in IPS mode); this file defines networks, inspectors, rules, logs.
+HOME_NET = '{{ target_subnet }}'
+EXTERNAL_NET = '{{ attack_subnet }}'
+-- upstream defaults installed by Snort 3 (default_variables from HOME_NET / EXTERNAL_NET, default_wizard)
+include '{{ snort3_prefix }}/etc/snort/snort_defaults.lua'
+
+-- session tracking and service inspectors (without them service rules such as "alert http" never match)
+stream = { }
+stream_ip = { }
+stream_icmp = { }
+stream_tcp = { }
+stream_udp = { }
+http_inspect = { }
+ftp_server = default_ftp_server
+ftp_client = { }
+ftp_data = { }
+ssh = { }
+dns = { }
+wizard = default_wizard
+binder =
+{
+    { when = { proto = 'udp', ports = '53', role = 'server' }, use = { type = 'dns' } },
+    { when = { proto = 'tcp', ports = '53', role = 'server' }, use = { type = 'dns' } },
+    { when = { service = 'dns' },      use = { type = 'dns' } },
+    { when = { service = 'ftp' },      use = { type = 'ftp_server' } },
+    { when = { service = 'ftp-data' }, use = { type = 'ftp_data' } },
+    { when = { service = 'http' },     use = { type = 'http_inspect' } },
+    { when = { service = 'ssh' },      use = { type = 'ssh' } },
+    { use = { type = 'wizard' } }
+}
+
+ips =
+{
+    enable_builtin_rules = true,
+    variables = default_variables,
+    include = '{{ snort3_rules_file }}',
+}
+alert_fast = { file = true, packet = false }
+alert_json = { file = true, limit = 100, fields = 'timestamp pkt_num proto pkt_gen pkt_len dir src_addr src_port dst_addr dst_port service rule priority class action b64_data msg' }

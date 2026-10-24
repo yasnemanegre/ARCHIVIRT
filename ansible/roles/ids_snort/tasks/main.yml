@@ -1,226 +1,234 @@
 # ─────────────────────────────────────────────────────────────
-# ARCHIVIRT — IDS Snort 3 Role
-# Deploys Snort 3 in passive IDS mode on the monitor VM
+# ARCHIVIRT — IDS/IPS Snort 3 role (STEP3.2 rewrite, PROPOSAL)
+# Target: Snort 3.1.74.0 + LibDAQ 3.0.13 ONLY. The Ubuntu package "snort" (= Snort 2.9) is never
+# installed; its presence is a hard error (removal = separate, authorised action).
+# Nothing is masked: every task fails loudly. Every version is verified after installation.
+# The service units are installed DISABLED: engines are started by the campaign/validation
+# procedure only (never two IPS engines on the same NFQUEUE, never in parallel with Suricata).
 # ─────────────────────────────────────────────────────────────
 
-- name: Install Snort 3 build dependencies
-  ansible.builtin.apt:
-    name:
-      - build-essential
-      - libpcap-dev
-      - libpcre3-dev
-      - libdumbnet-dev
-      - bison
-      - flex
-      - zlib1g-dev
-      - openssl
-      - libssl-dev
-      - libnghttp2-dev
-      - pkg-config
-      - cmake
-      - libhwloc-dev
-    state: present
-  ignore_errors: yes
+- name: Preconditions - explicit owner decisions (no default)
+  ansible.builtin.assert:
+    that:
+      - ids_mode is defined and ids_mode in ['ids', 'ips']
+      - snort3_install_method is defined and snort3_install_method in ['source', 'package']
+      - archivirt_version_lock is defined and archivirt_version_lock | length > 0
+    fail_msg: "ids_mode (ids|ips), snort3_install_method (source|package) and archivirt_version_lock are mandatory"
 
-- name: Install Snort 3 via apt (Ubuntu 22.04 package)
-  ansible.builtin.apt:
-    name: snort
-    state: present
-  ignore_errors: true
+- name: Refuse Snort 2 (Ubuntu package "snort") if present
+  ansible.builtin.command: dpkg-query -W -f='${Status}' snort
+  register: snort2_state
+  changed_when: false
+  failed_when: false
 
-- name: Create Snort directories
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
+- name: Fail if Snort 2 is installed
+  ansible.builtin.fail:
+    msg: "Ubuntu package 'snort' (Snort 2.9) is installed: refusing to continue (removal requires a separate authorisation)"
+  when: "'install ok installed' in snort2_state.stdout"
+
+# ---- Pre-installation guard (STEP3.1): origin, version, architecture, sha256, dependencies ----
+- name: Refresh the apt index from the configured sources (local mirror only on the lab VMs)
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Packages of the guard profile (single source of truth = the approved version lock)
+  ansible.builtin.set_fact:
+    snort3_guard_profile: "snort3{{ '-pkg' if snort3_install_method == 'package' else '' }}-{{ ids_mode }}"
+    snort3_lock_packages: "{{ ((lookup('file', archivirt_version_lock) | from_json).profiles['snort3' ~ ('-pkg' if snort3_install_method == 'package' else '') ~ '-' ~ ids_mode].packages.keys()) | list | sort }}"
+
+- name: Capture the apt selection seen by the monitor (read-only)
+  ansible.builtin.shell: |
+    set -o pipefail
+    apt-cache policy {{ snort3_lock_packages | join(' ') }}
+  args: { executable: /bin/bash }
+  register: snort3_apt_policy
+  changed_when: false
+
+- name: Capture installed packages on the monitor (read-only)
+  ansible.builtin.command: dpkg-query -W -f='${Package} ${Version}\n'
+  register: snort3_dpkg
+  changed_when: false
+
+- name: Store the captures on the controller
+  ansible.builtin.copy:
+    dest: "{{ item.dest }}"
+    content: "{{ item.content }}\n"
+    mode: "0600"
   loop:
-    - /etc/snort3
-    - /etc/snort3/rules
-    - /var/log/snort
-    - /var/log/snort/pcaps
+    - { dest: "/tmp/archivirt-guard-{{ inventory_hostname }}-policy.txt", content: "{{ snort3_apt_policy.stdout }}" }
+    - { dest: "/tmp/archivirt-guard-{{ inventory_hostname }}-dpkg.txt", content: "{{ snort3_dpkg.stdout }}" }
+  loop_control: { label: "{{ item.dest }}" }
+  delegate_to: localhost
+  become: false
 
-- name: Deploy Snort 3 main configuration
-  ansible.builtin.copy:
-    dest: /etc/snort3/snort.lua
-    content: |
-      ---------------------------------------------------------------------------
-      -- ARCHIVIRT Snort 3 Configuration (IaC v3)
-      -- Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
-      -- Variables injectées via Ansible (hosts.ini)
-      ---------------------------------------------------------------------------
+- name: Run the install guard on the controller (refuses unless the lock is APPROVED and everything is proven)
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -B
+      - "{{ archivirt_project_dir }}/scripts/archivirt_install_guard.py"
+      - --lock
+      - "{{ archivirt_version_lock }}"
+      - --profile
+      - "{{ snort3_guard_profile }}"
+      - --mirror-dir
+      - /var/spool/apt-mirror/packages
+      - --apt-policy
+      - "/tmp/archivirt-guard-{{ inventory_hostname }}-policy.txt"
+      - --expected-origin
+      - "{{ archivirt_mirror_url }} ./"
+      - --installed
+      - "/tmp/archivirt-guard-{{ inventory_hostname }}-dpkg.txt"
+      - --repo
+      - "{{ archivirt_project_dir }}"
+  register: snort3_guard
+  changed_when: false
+  delegate_to: localhost
+  become: false
 
-      HOME_NET = '{{ target_subnet }}'
-      EXTERNAL_NET = '{{ attack_subnet }}'
-      include '/usr/local/etc/snort/snort_defaults.lua'
-      DNS_SERVERS = HOME_NET
-      HTTP_SERVERS = HOME_NET
-
-      network = { checksum_eval = 'none' }
-
-      detect =
-      {
-        pkts_per_batch = 64,
-        max_pdu_size = 65535,
-      }
-
-      alert_fast =
-      {
-        file = true,
-        packet = false,
-        limit = 10,
-      }
-
-      ips =
-      {
-        enable_builtin_rules = true,
-        variables = { nets = { HOME_NET = HOME_NET, EXTERNAL_NET = EXTERNAL_NET } },
-        include = '/etc/snort3/rules/archivirt.rules',
-      }
-
-- name: Deploy ARCHIVIRT local Snort 3 rules
-  ansible.builtin.copy:
-    dest: /etc/snort3/rules/archivirt.rules
-    content: |
-      # ─────────────────────────────────────────────────────────
-      # ARCHIVIRT Local Snort 3 Rules (v3 — Snort 3.1.74 compatible)
-      # ─────────────────────────────────────────────────────────
-
-      # Port Scan Detection (Nmap)
-      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap SYN Scan"; flags:S; sid:1000001; rev:3;)
-      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap NULL Scan"; flags:0; sid:1000002; rev:3;)
-      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap XMAS Scan"; flags:FPU; sid:1000003; rev:3;)
-
-      # SSH Brute-force Detection
-      alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Brute-force Attempt"; flow:to_server,established; content:"SSH"; sid:1000010; rev:3;)
-      alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Multiple Auth"; flow:to_server,established; sid:1000011; rev:3;)
-
-      # SQL Injection Detection (granular — distinguishes attack types)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi UNION-based"; content:"UNION%20SELECT"; sid:1000020; rev:5;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi Time-based SLEEP"; content:"SLEEP%28"; sid:1000021; rev:5;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi Boolean OR"; content:"OR%201%3D1"; sid:1000022; rev:5;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi sqlmap UA"; content:"sqlmap"; sid:1000023; rev:5;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi dvwa path"; content:"/dvwa/vulnerabilities/sqli/"; sid:1000024; rev:4;)
-
-      # DDoS Slowloris Detection
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT Slowloris DDoS"; flow:to_server,established; content:"GET"; sid:1000030; rev:3;)
-
-      # FTP Brute-force
-      alert tcp any any -> $HOME_NET 21 (msg:"ARCHIVIRT FTP Brute-force"; flow:to_server,established; content:"PASS"; sid:1000040; rev:3;)
-
-      # SMB Enumeration
-      alert tcp any any -> $HOME_NET 445 (msg:"ARCHIVIRT SMB Scan Detected"; flow:to_server,established; sid:1000050; rev:3;)
-
-- name: Create Snort pcap directory
-  ansible.builtin.file:
-    path: /var/log/snort/pcaps
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-
-- name: Remove Snort 2 (conflicts with Snort 3)
+# ---- Build dependencies (exact versions proven by the guard; local mirror only) ----
+- name: Install Snort 3 build dependencies from the local mirror
   ansible.builtin.apt:
-    name: snort
-    state: absent
-    purge: yes
-  ignore_errors: yes
+    name: "{{ snort3_build_deps_ids + (snort3_build_deps_ips_extra if ids_mode == 'ips' else []) }}"
+    state: present
+    install_recommends: false
+    allow_downgrade: false
+  when: snort3_install_method == 'source'
 
-- name: Stop Snort 2 services if running
-  ansible.builtin.shell: |
-    pkill -f /usr/sbin/snort 2>/dev/null || true
-  changed_when: false
-  ignore_errors: yes
+# ---- Method "source": verified archives, LibDAQ then Snort 3, outside dpkg ----
+- name: Source build directory
+  ansible.builtin.file: { path: "{{ snort3_build_dir }}", state: directory, owner: root, group: root, mode: "0755" }
+  when: snort3_install_method == 'source'
 
-- name: Create snort_defaults.lua
+- name: Copy the verified source archives
   ansible.builtin.copy:
-    dest: /etc/snort3/snort_defaults.lua
-    content: |
-      -- ARCHIVIRT Snort 3 Defaults
-      -- Generated by Ansible IaC
-      HOME_NET = '{{ target_subnet }}'
-      EXTERNAL_NET = '!$HOME_NET'
-      HTTP_SERVERS = '$HOME_NET'
-      HTTP_PORTS = '80'
-      SSH_SERVERS = '$HOME_NET'
-      SSH_PORTS = '22'
-      FTP_SERVERS = '$HOME_NET'
-      FTP_PORTS = '21'
-      RULE_PATH = '/etc/snort3/rules'
+    src: "{{ archivirt_offline_dir }}/src/{{ item }}"
+    dest: "{{ snort3_build_dir }}/{{ item }}"
     mode: "0644"
+  loop: ["libdaq-{{ libdaq_version }}.tar.gz", "snort3-{{ snort3_version }}.tar.gz"]
+  when: snort3_install_method == 'source'
 
-- name: Create symlink /usr/local/etc/snort → /etc/snort3
-  ansible.builtin.file:
-    src: /etc/snort3
-    dest: /usr/local/etc/snort
-    state: link
-    force: yes
+- name: Checksum of the copied archives
+  ansible.builtin.stat:
+    path: "{{ snort3_build_dir }}/{{ item.f }}"
+    checksum_algorithm: sha256
+  loop:
+    - { f: "libdaq-{{ libdaq_version }}.tar.gz", sha: "{{ libdaq_src_sha256 }}" }
+    - { f: "snort3-{{ snort3_version }}.tar.gz", sha: "{{ snort3_src_sha256 }}" }
+  register: snort3_src_stat
+  when: snort3_install_method == 'source'
 
-- name: Remove duplicate /usr/local/etc/snort directory if exists
-  ansible.builtin.file:
-    path: /usr/local/etc/snort
-    state: link
-  ignore_errors: yes
+- name: Fail on any archive checksum mismatch
+  ansible.builtin.assert:
+    that: item.stat.checksum == item.item.sha
+    fail_msg: "{{ item.item.f }}: sha256 {{ item.stat.checksum }} != expected {{ item.item.sha }}"
+  loop: "{{ snort3_src_stat.results }}"
+  loop_control: { label: "{{ item.item.f }}" }
+  when: snort3_install_method == 'source'
 
-- name: Create Snort log directory
-  ansible.builtin.file:
-    path: /var/log/snort
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-
-- name: Bring up monitoring interface ens4
+- name: Build and install LibDAQ (bootstrap needs libtool; nfq module needs libmnl-dev)
   ansible.builtin.shell: |
-    ip link set {{ monitor_interface | default('ens4') }} up 2>/dev/null || true
+    set -euo pipefail
+    cd {{ snort3_build_dir }}
+    rm -rf libdaq-{{ libdaq_version }}
+    tar -xzf libdaq-{{ libdaq_version }}.tar.gz
+    cd libdaq-{{ libdaq_version }}
+    ./bootstrap
+    ./configure --prefix={{ snort3_prefix }} {{ '--enable-nfq-module' if ids_mode == 'ips' else '' }}
+    make -j"$(nproc)"
+    make install
+    ldconfig
+  args:
+    executable: /bin/bash
+    creates: "{{ snort3_prefix }}/lib/libdaq.so.3"
+  when: snort3_install_method == 'source'
+
+- name: Build and install Snort 3
+  ansible.builtin.shell: |
+    set -euo pipefail
+    cd {{ snort3_build_dir }}
+    rm -rf snort3-{{ snort3_version }}
+    tar -xzf snort3-{{ snort3_version }}.tar.gz
+    cd snort3-{{ snort3_version }}
+    export PKG_CONFIG_PATH={{ snort3_prefix }}/lib/pkgconfig
+    ./configure_cmake.sh --prefix={{ snort3_prefix }}
+    cd build
+    make -j"$(nproc)"
+    make install
+    ldconfig
+  args:
+    executable: /bin/bash
+    creates: "{{ snort3_prefix }}/bin/snort"
+  when: snort3_install_method == 'source'
+
+# ---- Method "package": local package pinned to the exact version (never an unpinned "snort3") ----
+- name: Install the local Snort 3 package (exact version)
+  ansible.builtin.apt:
+    name: "snort3={{ snort3_version }}"
+    state: present
+    install_recommends: false
+    allow_downgrade: false
+  when: snort3_install_method == 'package'
+
+# ---- Post-installation verification (both methods) ----
+- name: LibDAQ version actually usable (library, not archive or package name)
+  ansible.builtin.command: pkg-config --modversion libdaq
+  environment: { PKG_CONFIG_PATH: "{{ snort3_prefix }}/lib/pkgconfig" }
+  register: libdaq_lib_version
   changed_when: false
 
-- name: Set monitoring interface to promiscuous mode
+- name: Snort 3 version and DAQ modules
   ansible.builtin.shell: |
-    ip link set {{ monitor_interface | default('ens4') }} promisc on
+    set -euo pipefail
+    {{ snort3_prefix }}/bin/snort -V 2>&1
+    {{ snort3_prefix }}/bin/snort --daq-dir {{ snort3_prefix }}/lib/daq --daq-list 2>&1
+  args: { executable: /bin/bash }
+  register: snort3_check
+  changed_when: false
+
+- name: Fail unless the reference versions and the DAQ modules for this mode are present
+  ansible.builtin.assert:
+    that:
+      - libdaq_lib_version.stdout | trim == libdaq_version
+      - ("Version " ~ snort3_version) in snort3_check.stdout
+      - "'afpacket' in snort3_check.stdout"
+      - ids_mode == 'ids' or 'nfq' in snort3_check.stdout
+    fail_msg: "Snort 3 / LibDAQ verification failed (expected Snort {{ snort3_version }}, LibDAQ {{ libdaq_version }}, DAQ afpacket{{ ' + nfq' if ids_mode == 'ips' else '' }})"
+
+# ---- Configuration (passive capture on the mirror interfaces; inline = NFQUEUE) ----
+- name: Snort 3 directories
+  ansible.builtin.file: { path: "{{ item }}", state: directory, owner: root, group: root, mode: "0755" }
+  loop: [/etc/snort3, /etc/snort3/rules, /var/log/snort3, /etc/archivirt]
+
+- name: Rules file present (content managed by the campaign / validation procedure)
+  ansible.builtin.copy: { dest: "{{ snort3_rules_file }}", content: "", force: false, mode: "0644" }
+
+- name: Snort 3 configuration
+  ansible.builtin.template: { src: snort.lua.j2, dest: /etc/snort3/snort.lua, mode: "0644" }
+
+- name: Validate the configuration (fails the role on error)
+  ansible.builtin.command: "{{ snort3_prefix }}/bin/snort -c /etc/snort3/snort.lua --daq-dir {{ snort3_prefix }}/lib/daq -T"
+  changed_when: false
+
+- name: Service units (installed DISABLED, started only by the campaign / validation procedure)
+  ansible.builtin.template: { src: "{{ item }}.j2", dest: "/etc/systemd/system/{{ item }}", mode: "0644" }
+  loop: [snort3-ids@.service, snort3-ips.service]
+
+- name: Reload systemd (no unit enabled or started here)
+  ansible.builtin.systemd: { daemon_reload: true }
+
+- name: Snort 3 provenance (/etc/archivirt/snort3-provenance.json)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 - <<'PY'
+    import hashlib, json, subprocess
+    def sha(p):
+        h = hashlib.sha256(); h.update(open(p, "rb").read()); return h.hexdigest()
+    doc = {"schema": "archivirt-snort3-provenance/1", "install_method": "{{ snort3_install_method }}", "mode": "{{ ids_mode }}",
+           "snort_version": "{{ snort3_version }}", "libdaq_version": "{{ libdaq_lib_version.stdout | trim }}",
+           "files": {p: sha(p) for p in ("{{ snort3_prefix }}/bin/snort", "{{ snort3_prefix }}/lib/libdaq.so.3", "/etc/snort3/snort.lua", "{{ snort3_rules_file }}")},
+           "source_sha256": {"snort3": "{{ snort3_src_sha256 }}", "libdaq": "{{ libdaq_src_sha256 }}"} if "{{ snort3_install_method }}" == "source" else None}
+    json.dump(doc, open("/etc/archivirt/snort3-provenance.json", "w"), indent=1, sort_keys=True)
+    PY
+  args: { executable: /bin/bash }
   changed_when: true
-
-- name: Create Snort systemd service
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/snort3.service
-    content: |
-      [Unit]
-      Description=Snort 3 NIDS - ARCHIVIRT Lab
-      After=network.target
-
-      [Service]
-      Type=simple
-      ExecStart={{ snort_binary }} \
-        -c /etc/snort3/snort.lua \
-        -i {{ monitor_interface | default('ens4') }} \
-        -l /var/log/snort \
-        --daq pcap \
-        --daq-mode passive
-      Restart=on-failure
-      RestartSec=5
-
-      [Install]
-      WantedBy=multi-user.target
-
-- name: Reload systemd and enable Snort 3
-  ansible.builtin.systemd:
-    daemon_reload: true
-    name: snort3
-    enabled: true
-    state: started
-  ignore_errors: yes
-
-- name: Wait for Snort 3 to start
-  pause:
-    seconds: 15
-
-- name: Verify Snort 3 is running
-  ansible.builtin.command: systemctl is-active snort3
-  register: snort_status
-  changed_when: false
-  ignore_errors: yes
-
-- name: Print Snort status
-  ansible.builtin.debug:
-    msg: "Snort 3 status: {{ snort_status.stdout }}"

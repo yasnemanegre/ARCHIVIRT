@@ -1,0 +1,8 @@
+# Managed by Ansible (role manager, tasks/grafana.yml). Contains secrets:
+# file mode 0640 root:grafana. Values come from ansible-vault.
+GF_SECURITY_ADMIN_USER={{ grafana_admin_user }}
+GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
+GF_SECURITY_SECRET_KEY={{ grafana_secret_key }}
+{% for key, value in grafana_hardening_env | dictsort %}
+{{ key }}={{ value }}
+{% endfor %}

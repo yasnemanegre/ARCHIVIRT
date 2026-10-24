@@ -1,40 +1,45 @@
 #!/bin/bash
 # ARCHIVIRT — Full reset and campaign launcher
-# Usage: ./archivirt-reset.sh
-set -e
+# Usage: ARCHIVIRT_CONFIRM_DESTROY=yes ./archivirt-reset.sh
+#
+# DANGER: destroys and recreates ALL Terraform-managed lab VMs, then runs the
+# scenarios. Never run it on the infrastructure that produced frozen results
+# without an explicit decision. Requires ~/.archivirt/vault_pass (ansible-vault).
+set -euo pipefail
 cd "$(dirname "$0")"
+
+if [ "${ARCHIVIRT_CONFIRM_DESTROY:-}" != "yes" ]; then
+  echo "Refusing to run: set ARCHIVIRT_CONFIRM_DESTROY=yes to destroy and rebuild the lab." >&2
+  exit 2
+fi
+
+VAULT_PASS_FILE="${ARCHIVIRT_VAULT_PASS_FILE:-$HOME/.archivirt/vault_pass}"
+if [ ! -r "$VAULT_PASS_FILE" ]; then
+  echo "Missing ansible-vault password file: $VAULT_PASS_FILE" >&2
+  exit 2
+fi
+
 terraform -chdir=terraform/ destroy -auto-approve
 sudo ovs-vsctl --if-exists del-br ovs-manager
 ansible-playbook ansible/playbooks/setup_ovs.yml -i ansible/inventory/hosts.ini
 terraform -chdir=terraform/ apply -auto-approve
-sleep 30 && sudo ip route add 10.0.5.0/24 dev virbr1 src 10.0.5.1 2>/dev/null || true
+sleep 30
+if ! ip route show 10.0.5.0/24 | grep -q .; then
+  sudo ip route add 10.0.5.0/24 dev virbr1 src 10.0.5.1
+fi
 sleep 90
 ansible-playbook ansible/playbooks/run_all_scenarios.yml \
   -i ansible/inventory/hosts.ini \
   --ssh-extra-args="-o StrictHostKeyChecking=no"
 
-# Setup monitoring stack
-ansible-playbook ansible/playbooks/setup_influxdb.yml \
-  -i ansible/inventory/hosts.ini
+# Monitoring stack: single provisioning path = Ansible role "manager"
+# (pinned packages from the local mirror, secrets from ansible-vault,
+# Grafana datasource uid archivirt-influx + dashboard provisioned from files,
+# end-to-end validation). Then Telegraf on monitor-ids.
+ansible-playbook ansible/playbooks/deploy_monitoring.yml -i ansible/inventory/hosts.ini \
+  --vault-password-file "$VAULT_PASS_FILE"
 ansible-playbook ansible/playbooks/deploy_telegraf.yml \
-  -i ansible/inventory/hosts.ini
+  -i ansible/inventory/hosts.ini \
+  --vault-password-file "$VAULT_PASS_FILE"
 
-# Reset Grafana password after fresh deploy
-sleep 10
-ssh ubuntu@10.0.5.10 "sudo grafana-cli admin reset-admin-password archivirt 2>/dev/null || true"
-
-# Import Grafana dashboard
-DASHBOARD=$(cat monitoring/grafana/dashboard.json)
-ssh ubuntu@10.0.5.10 "curl -s -X POST \
-  -H 'Content-Type: application/json' \
-  -u admin:${GRAFANA_PASSWORD:-archivirt} \
-  http://localhost:3000/api/datasources \
-  -d '{\"name\":\"InfluxDB-ARCHIVIRT\",\"type\":\"influxdb\",\"uid\":\"archivirt-influx\",\"url\":\"http://localhost:8086\",\"access\":\"proxy\",\"jsonData\":{\"version\":\"Flux\",\"organization\":\"archivirt\",\"defaultBucket\":\"archivirt\"},\"secureJsonData\":{\"token\":\"archivirt-telegraf-token\"}}' 2>/dev/null || true"
-
-ssh ubuntu@10.0.5.10 "curl -s -X POST \
-  -H 'Content-Type: application/json' \
-  -u admin:${GRAFANA_PASSWORD:-archivirt} \
-  http://localhost:3000/api/dashboards/import \
-  -d '{\"dashboard\": $DASHBOARD, \"overwrite\": true, \"folderId\": 0}' 2>/dev/null"
-
-echo '✅ Monitoring stack ready — Grafana: http://10.0.5.10:3000 (admin/archivirt)'
+echo "Monitoring stack validated by Ansible — Grafana: http://10.0.5.10:3000 (credentials in ansible-vault)"

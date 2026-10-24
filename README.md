@@ -126,6 +126,17 @@ ARCHIVIRT/
 └── results/                        # JSON results + campaigns
 ---
 
+## Monitoring (InfluxDB, Telegraf, optional Grafana)
+
+- **Collection/storage (always on):** Telegraf (manager, monitor-ids) → InfluxDB 2 on the manager (org/bucket `archivirt`).
+- **Grafana (optional UI):** controlled by `archivirt_grafana_enabled` in `ansible/inventory/group_vars/all/monitoring.yml` (default `true`).
+  - `true`: Grafana is installed from the local mirror, hardened (authentication required, no anonymous access, no sign-up, no outbound calls) and validated.
+  - `false`: Grafana is stopped and disabled if present (package and data kept); InfluxDB and Telegraf keep collecting. One-off override: `-e archivirt_grafana_enabled=false`.
+- **Credentials:** generated randomly and stored in ansible-vault (`ansible/inventory/group_vars/all/vault.yml`, never committed; template and rotation procedure in `vault.yml.example`). There is no default or documented password.
+- **Deploy:** `ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/deploy_monitoring.yml --vault-password-file ~/.archivirt/vault_pass`
+- **Inventory path:** always the *file* `ansible/inventory/hosts.ini` (default of `ansible.cfg` when run from the repository root). Passing the *directory* (`-i ansible/inventory`) makes Ansible skip `hosts.ini`, because `.ini` is in the default `INVENTORY_IGNORE_EXTS` for directory inventories — only `localhost` is then seen. Check: `ansible-inventory -i ansible/inventory/hosts.ini --graph --vault-password-file ~/.archivirt/vault_pass`.
+- Monitoring metrics are operational telemetry only; detection/blocking evidence comes from Suricata `eve.json` and the per-run records.
+
 ## Known Issues & Fixes
 
 | Issue | Fix |
@@ -133,7 +144,7 @@ ARCHIVIRT/
 | `libdumbnet.so.1` missing | Pre-flight apt install |
 | `ovs-manager` conflicts virbr1 | `del-br ovs-manager` in reset script |
 | Manager unreachable | Route via virbr1 (auto in reset script) |
-| Grafana wrong password | `grafana-cli admin reset-admin-password archivirt` |
+| Grafana wrong password | Credentials live in ansible-vault (`vault_grafana_password`). Re-run `ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/deploy_monitoring.yml --vault-password-file ~/.archivirt/vault_pass` — the role restores the vault password. Never set a fixed password by hand. |
 | Table 3 static | Dynamic metrics via Telegraf planned v4.2 |
 
 ---

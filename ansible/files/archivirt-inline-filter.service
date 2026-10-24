@@ -1,0 +1,15 @@
+# ARCHIVIRT monitor transit filter (D-10). Loaded before the network is configured, hence before any
+# interface can forward (net.ipv4.ip_forward is applied earlier by systemd-sysctl, but no interface is up yet).
+# No ExecStop on purpose: stopping the unit never removes the filter (same choice as archivirt-egress-guard).
+[Unit]
+Description=ARCHIVIRT monitor transit filter (nftables table inet archivirt_inline)
+DefaultDependencies=no
+After=local-fs.target
+Before=network-pre.target archivirt-inline-routing.service
+Wants=network-pre.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/archivirt/archivirt-inline-filter.nft
+[Install]
+WantedBy=multi-user.target

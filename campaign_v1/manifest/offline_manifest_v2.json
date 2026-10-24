@@ -1,0 +1,137 @@
+{
+  "schema": "archivirt-offline-manifest/2",
+  "status": "PROPOSED (C1.1) - not in the repository",
+  "description": "Phase-2 series offline artifact set. v1 (manifest_version 1.0, sha256 2c10bea9...) stays untouched for the frozen Article-2.",
+  "offline_source": {
+    "apt_mirror": "http://10.0.3.1:8080 (monitor) / http://10.0.4.1:8080 (attacker)",
+    "mirror_docroot_on_host": "/var/spool/apt-mirror/packages"
+  },
+  "artifacts": [
+    {
+      "id": "suricata",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "binary",
+      "expect_version": "6.0.4",
+      "required_for": [
+        "engine:suricata"
+      ]
+    },
+    {
+      "id": "suricata_rules_archivirt_local",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "file",
+      "path": "/etc/suricata/rules/archivirt-local.rules",
+      "sha256": "c7143ff67193307f1cc50fc4e3cea725f62f68b3bc87c324429aeeaa0be8e93a",
+      "required_for": [
+        "engine:suricata"
+      ],
+      "note": "rendered by role ids_suricata; sha256 to be pinned after the first controlled deployment (U5). The historical archivirt.rules (64068da8...) is an immutable reference kept OUTSIDE the lab (D-A2).",
+      "sha256_pinned_by": "ARCHIVIRT-P2-VAL2 lot 3, 2026-10-20 (U5); = role template archivirt-local.rules.j2 rendered on archivirt-monitor-ids"
+    },
+    {
+      "id": "suricata_ids_provenance",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "file",
+      "path": "/etc/archivirt/ids-provenance.json",
+      "sha256": null,
+      "required_for": [
+        "engine:suricata"
+      ],
+      "note": "written by role ids_suricata (B1/B3); content varies with series, never pinned"
+    },
+    {
+      "id": "snort3",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "binary",
+      "expect_version": "3.1.74.0",
+      "required_for": [
+        "engine:snort3"
+      ],
+      "version_match": "exact"
+    },
+    {
+      "id": "libdaq3",
+      "role": "engine",
+      "host": "archivirt-monitor-ids",
+      "type": "library",
+      "expect_version": "3.0.13",
+      "required_for": [
+        "engine:snort3"
+      ],
+      "version_match": "exact"
+    },
+    {
+      "id": "nmap",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "expect_version": "7.",
+      "required_for": [
+        "SCN-001"
+      ]
+    },
+    {
+      "id": "hydra",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "required_for": [
+        "SCN-002"
+      ]
+    },
+    {
+      "id": "rockyou",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "file",
+      "path": "/usr/share/wordlists/rockyou.txt",
+      "required_for": [
+        "SCN-002"
+      ],
+      "sha256": null
+    },
+    {
+      "id": "sqlmap",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "required_for": [
+        "SCN-003"
+      ]
+    },
+    {
+      "id": "slowloris",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "file",
+      "path": "/opt/archivirt/attack-scripts/slowloris.py",
+      "required_for": [
+        "SCN-004"
+      ],
+      "sha256": null
+    },
+    {
+      "id": "python3",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "required_for": [
+        "SCN-004",
+        "SCN-005"
+      ]
+    },
+    {
+      "id": "curl",
+      "role": "attacker",
+      "host": "archivirt-attacker",
+      "type": "binary",
+      "required_for": [
+        "SCN-005"
+      ]
+    }
+  ]
+}

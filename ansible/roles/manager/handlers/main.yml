@@ -1,0 +1,10 @@
+---
+- name: Restart telegraf
+  ansible.builtin.systemd:
+    name: telegraf
+    state: restarted
+
+- name: Restart grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    state: restarted

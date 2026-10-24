@@ -25,8 +25,7 @@
       - requests
       - paramiko
     executable: pip3
-    extra_args: --no-index --find-links file:///var/spool/apt-mirror/packages/pip/
-  ignore_errors: yes
+    extra_args: "--no-index --trusted-host {{ archivirt_mirror_url | urlsplit('hostname') }} --find-links {{ archivirt_mirror_url }}/wheels/"
 
 - name: Create attack scripts directory
   ansible.builtin.file:
@@ -158,14 +157,13 @@
           args = parser.parse_args()
           simulate_web_browsing(args.target_ip, args.duration)
 
-- name: Install Metasploit Framework
-  ansible.builtin.shell: |
-    curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > /tmp/msfinstall
-    chmod +x /tmp/msfinstall
-    /tmp/msfinstall
-  args:
-    creates: /usr/bin/msfconsole
-  ignore_errors: true
+# Metasploit is not used by scenarios SCN-001..SCN-005 and its installer
+# downloads from the Internet, which violates the offline-first design.
+# It is therefore disabled unless an offline package is provided explicitly.
+- name: Install Metasploit Framework (optional, offline package only)
+  ansible.builtin.apt:
+    deb: "{{ archivirt_metasploit_deb }}"
+  when: archivirt_metasploit_deb is defined
 
 - name: Print attack VM ready message
   ansible.builtin.debug:
