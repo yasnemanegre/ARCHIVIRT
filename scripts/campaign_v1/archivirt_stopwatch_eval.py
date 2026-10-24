@@ -116,7 +116,19 @@ def engine_drops_coverage(stats_log, tot):
         return "coverage unreadable (%s)" % type(e).__name__
     return None
 
-def evaluate(params, mode, rows, bad, end, remote_rows, stats_log, abort):
+def engine_stop_problem(path):
+    """B-1 option B (opt-in, only when --engine-stop is given; requires an approved amendment): the run's engine must
+    have stopped cleanly (stop.sh: SIGTERM -> final stats dump and EVE flush). Returns a reason string, or None."""
+    try: lines = {l.strip() for l in open(path, encoding="utf-8")}
+    except FileNotFoundError: return "engine stop status absent"
+    except Exception as e: return "engine stop status unreadable (%s)" % type(e).__name__
+    clean, forced = "ARCHIVIRT_ENGINE=STOPPED_CLEAN" in lines, "ARCHIVIRT_ENGINE=STOPPED_FORCED" in lines
+    if clean and forced: return "engine stop status contradictory (CLEAN and FORCED)"
+    if forced: return "engine stopped by SIGKILL (STOPPED_FORCED): no final stats dump, EVE flush not guaranteed"
+    if not clean: return "engine stop status not recorded"
+    return None
+
+def evaluate(params, mode, rows, bad, end, remote_rows, stats_log, abort, engine_stop=None):
     res, reasons = {}, []
     if rows is None: return "INVALID", {"_recorder": "NOT_EVALUABLE"}, ["NOT_EVALUABLE: recorder output absent"]
     if end is None: reasons.append("NOT_EVALUABLE: recorder did not end cleanly (no end record)")
@@ -156,6 +168,9 @@ def evaluate(params, mode, rows, bad, end, remote_rows, stats_log, abort):
             if s != "NOT_EVALUABLE":
                 cov = engine_drops_coverage(stats_log, tot)
                 if cov: s, why = "NOT_EVALUABLE", cov
+            if s != "NOT_EVALUABLE" and engine_stop is not None:
+                es = engine_stop_problem(engine_stop)
+                if es: s, why = "NOT_EVALUABLE", es
             res["engine_drops"] = {"status": s, "detail": why, "counters": tot}
             if s == "CONFIRMED": reasons.append("STOP_CRITERIA: engine_drops (%s)" % why)
             if s == "NOT_EVALUABLE": reasons.append("NOT_EVALUABLE: engine_drops (%s)" % why)
@@ -166,7 +181,7 @@ def evaluate(params, mode, rows, bad, end, remote_rows, stats_log, abort):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--jsonl", required=True); ap.add_argument("--params", required=True); ap.add_argument("--mode", required=True)
-    ap.add_argument("--remote-jsonl"); ap.add_argument("--stats-log"); ap.add_argument("--abort-file")
+    ap.add_argument("--remote-jsonl"); ap.add_argument("--stats-log"); ap.add_argument("--abort-file"); ap.add_argument("--engine-stop")
     ap.add_argument("--result-json"); ap.add_argument("--repo"); ap.add_argument("--protect", action="append", default=[])
     a = ap.parse_args()
     try:
@@ -182,7 +197,7 @@ def main():
     if a.abort_file and os.path.isfile(a.abort_file):
         try: abort = json.load(open(a.abort_file))
         except Exception: abort = {"criterion": {"criterion": "unreadable abort file"}}
-    verdict, res, reasons = evaluate(params, a.mode, rows, bad, end, remote, a.stats_log, abort)
+    verdict, res, reasons = evaluate(params, a.mode, rows, bad, end, remote, a.stats_log, abort, a.engine_stop)
     block = {"evaluated": True, "verdict": verdict, "reasons": reasons, "criteria": res, "mode": a.mode,
              "samples": len(rows or []), "unreadable_lines": bad, "params_status": params.get("status"),
              "params_version": params.get("version"), "params_sha256": hashlib.sha256(raw).hexdigest()}

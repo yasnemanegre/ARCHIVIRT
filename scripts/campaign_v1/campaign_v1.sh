@@ -517,6 +517,7 @@ for scenario in $SCENARIO_LIST; do
         "${RM[@]}" stop --run-dir "$RUN_DIR" || { [[ $rc_check -eq 0 ]] && rc_check=6; }
         fin_args=(--run-dir "$RUN_DIR" --mode "$MODE" --params "$STOP_CRITERIA" --repo "$ROOT" --protect "$HOME/archivirt-backup")
         [[ "$MODE" == "ids" ]] && fin_args+=(--stats-log "$RUN_DIR/stats.log")
+        [[ "$MODE" == "ids" ]] && fin_args+=(--engine-stop "$RUN_DIR/engine_stop.txt")   # B-1 option B (amendment required)
         if [[ "$METRICS_SOURCE" == "agent" ]]; then agent_stop_fetch "$REMOTE_DIR" "$RUN_DIR"; fin_args+=(--remote-jsonl "$RUN_DIR/agent_metrics.jsonl"); fi
         fin=0; "${RM[@]}" finalize "${fin_args[@]}" || fin=$?
         if [[ $fin -eq 2 || $fin -eq 4 ]]; then

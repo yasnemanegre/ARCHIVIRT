@@ -76,6 +76,7 @@ def main():
     ap.add_argument("--first-sample-timeout", type=float, default=15); ap.add_argument("--proc", default="/proc")
     ap.add_argument("--interval", type=float); ap.add_argument("--repo"); ap.add_argument("--stats-log")
     ap.add_argument("--remote-jsonl"); ap.add_argument("--protect", action="append", default=[])
+    ap.add_argument("--engine-stop")   # B-1 option B (opt-in): passed through to the evaluator
     a = ap.parse_args()
     rd = a.run_dir; jsonl = os.path.join(rd, "stopwatch.jsonl"); pidf = os.path.join(rd, "stopwatch.pid")
     abortf = os.path.join(rd, "abort.json")
@@ -126,6 +127,7 @@ def main():
         cmd = PY + [os.path.join(HERE, "archivirt_stopwatch_eval.py"), "--jsonl", jsonl, "--params", a.params, "--mode", a.mode,
                     "--abort-file", abortf, "--result-json", os.path.join(rd, "result.json"), "--repo", a.repo or ""]
         if a.stats_log: cmd += ["--stats-log", a.stats_log]
+        if a.engine_stop: cmd += ["--engine-stop", a.engine_stop]
         if a.remote_jsonl: cmd += ["--remote-jsonl", a.remote_jsonl]
         for x in a.protect: cmd += ["--protect", x]
         r = subprocess.run(cmd, capture_output=True, text=True)
