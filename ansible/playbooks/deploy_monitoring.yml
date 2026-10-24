@@ -1,0 +1,18 @@
+---
+# =============================================================================
+# ARCHIVIRT - Deploy and validate the monitoring stack on the manager
+# Applies ONLY the "manager" role (no "common" role side effects such as
+# resolv.conf or ip_forward changes). Offline: local mirror only.
+# Usage: ansible-playbook -i ansible/inventory/hosts.ini \
+#          ansible/playbooks/deploy_monitoring.yml \
+#          --vault-password-file ~/.archivirt/vault_pass
+# Grafana is optional: archivirt_grafana_enabled (group_vars/all/monitoring.yml,
+# default true). Disable for one run with -e archivirt_grafana_enabled=false
+# (Grafana stopped/disabled, InfluxDB + Telegraf unchanged).
+# =============================================================================
+- name: ARCHIVIRT | Monitoring stack on manager (InfluxDB 2, Telegraf, Grafana)
+  hosts: archivirt-manager
+  become: true
+  gather_facts: true
+  roles:
+    - role: manager

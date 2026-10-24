@@ -1,0 +1,208 @@
+---
+# ─────────────────────────────────────────────────────────────
+# Grafana (enabled): install, harden, provision, validate.
+# Authentication is mandatory. No default/hard-coded credential:
+#   - initial admin password and secret_key come from ansible-vault and are
+#     injected through /etc/default/grafana-server (EnvironmentFile of the
+#     grafana-server unit), so the admin account is never created with the
+#     factory password;
+#   - anonymous access, sign-up and org creation are disabled;
+#   - outbound calls (update checks, usage reporting, gravatar, news feed,
+#     plugin key retrieval, external snapshots) are disabled for offline use.
+# ─────────────────────────────────────────────────────────────
+
+- name: Install pinned Grafana from the local mirror
+  ansible.builtin.apt:
+    name: "{{ item.name }}={{ item.version }}"
+    state: present
+    install_recommends: false
+  loop: "{{ monitoring_grafana_packages }}"
+  loop_control:
+    label: "{{ item.name }}={{ item.version }}"
+
+# A secret_key change makes values already encrypted in grafana.db
+# unreadable (the provisioned datasource is re-written at start-up, other
+# stored secrets are not). Detect the change first and back up the DB.
+- name: Detect a change of the Grafana environment (secrets / hardening)
+  ansible.builtin.blockinfile:
+    path: /etc/default/grafana-server
+    marker: "# {mark} ARCHIVIRT MANAGED GRAFANA SETTINGS"
+    block: "{{ lookup('ansible.builtin.template', 'grafana-env.j2') }}"
+    create: true
+    owner: root
+    group: grafana
+    mode: "0640"
+  check_mode: true
+  register: grafana_env_preview
+  no_log: true
+
+- name: Look for an existing Grafana database
+  ansible.builtin.stat:
+    path: /var/lib/grafana/grafana.db
+  register: grafana_db
+
+- name: Back up grafana.db before changing secrets (must succeed)
+  ansible.builtin.copy:
+    src: /var/lib/grafana/grafana.db
+    dest: "/var/lib/grafana/grafana.db.bak-{{ ansible_date_time.iso8601_basic_short }}"
+    remote_src: true
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  when:
+    - grafana_env_preview is changed
+    - grafana_db.stat.exists
+  register: grafana_db_backup
+
+- name: Report the grafana.db backup
+  ansible.builtin.debug:
+    msg: "{{ ('grafana.db backed up to ' ~ grafana_db_backup.dest) if grafana_db.stat.exists else 'no existing grafana.db (first installation): nothing to back up' }}"
+  when: grafana_env_preview is changed
+
+- name: Inject Grafana secrets and hardening settings (EnvironmentFile)
+  ansible.builtin.blockinfile:
+    path: /etc/default/grafana-server
+    marker: "# {mark} ARCHIVIRT MANAGED GRAFANA SETTINGS"
+    block: "{{ lookup('ansible.builtin.template', 'grafana-env.j2') }}"
+    create: true
+    owner: root
+    group: grafana
+    mode: "0640"
+  no_log: true
+  notify: Restart grafana
+
+- name: Provision the InfluxDB datasource
+  ansible.builtin.template:
+    src: datasource-archivirt.yaml.j2
+    dest: /etc/grafana/provisioning/datasources/archivirt.yaml
+    owner: root
+    group: grafana
+    mode: "0640"
+  no_log: true
+  notify: Restart grafana
+
+- name: Provision the dashboard provider
+  ansible.builtin.copy:
+    src: dashboards-archivirt.yaml
+    dest: /etc/grafana/provisioning/dashboards/archivirt.yaml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Create dashboard directory
+  ansible.builtin.file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0755"
+
+- name: Install the ARCHIVIRT dashboard
+  ansible.builtin.copy:
+    src: "{{ archivirt_project_dir }}/monitoring/grafana/dashboard.json"
+    dest: /var/lib/grafana/dashboards/archivirt-main.json
+    owner: grafana
+    group: grafana
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Enable and start Grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: true
+    state: started
+
+- name: Apply pending Grafana restart before validation
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Grafana API
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/health"
+    status_code: 200
+  register: grafana_health
+  retries: 30
+  delay: 3
+  until: grafana_health.status == 200
+
+  check_mode: false  # read-only probe, also runs under --check
+
+# Rotation of the admin password: change vault_grafana_password and re-run.
+# GF_SECURITY_ADMIN_PASSWORD only applies when the database is created, so
+# an existing admin account is updated here (password via stdin, not argv).
+
+- name: Check whether the vault admin password is already active
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/user"
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 401]
+  register: grafana_login
+  no_log: true
+  check_mode: false  # read-only probe, also runs under --check
+
+- name: Set the Grafana admin password from the vault (stdin, not argv)
+  ansible.builtin.command:
+    # runuser instead of become_user: Ansible cannot become an unprivileged
+    # user on this VM (no ACL support for its temporary files).
+    cmd: runuser -u grafana -- grafana cli --homepath /usr/share/grafana --config /etc/grafana/grafana.ini admin reset-admin-password --password-from-stdin
+    chdir: /usr/share/grafana
+    stdin: "{{ grafana_admin_password }}"
+  when: grafana_login.status == 401
+  no_log: true
+  changed_when: true
+
+# ── Authentication and end-to-end validation ────────────────
+- name: Anonymous API access is refused
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/dashboards/uid/archivirt-main"
+    status_code: 401
+  check_mode: false  # read-only probe, also runs under --check
+
+# No login attempt with factory credentials: failed logins count towards
+# Grafana's brute-force lock-out (5 failures / 5 min), which repeated runs
+# triggered. The admin account has a single password; if the (random, >= 16
+# chars, != "admin") vault password is accepted below, admin/admin cannot be.
+- name: Vault admin password is not a factory/weak value
+  ansible.builtin.assert:
+    that:
+      - grafana_admin_password | length >= 16
+      - grafana_admin_password != 'admin'
+    quiet: true
+  no_log: true
+- name: Vault credentials are accepted
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/user"
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  no_log: true
+  # depends on changes applied by this run → skipped in --check
+  when: not ansible_check_mode
+
+- name: Grafana datasource health (uid {{ grafana_datasource_uid }})
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/datasources/uid/{{ grafana_datasource_uid }}/health"
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: ds_health
+  no_log: true
+  retries: 10
+  delay: 3
+  until: ds_health.status == 200 and ds_health.json.status == "OK"
+  # depends on changes applied by this run → skipped in --check
+  when: not ansible_check_mode
+
+- name: Grafana dashboard archivirt-main is provisioned
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/dashboards/uid/archivirt-main"
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+  no_log: true
+  # depends on changes applied by this run → skipped in --check
+  when: not ansible_check_mode

@@ -1,50 +1,95 @@
 ---
 # ─────────────────────────────────────────────────────────────
 # ARCHIVIRT — Manager Role
-# Installs: Python analysis stack, InfluxDB, Telegraf, Grafana
+# Reference provisioning path for the monitoring stack.
+#   - InfluxDB 2 + Telegraf : always deployed (metric collection/storage)
+#   - Grafana               : optional UI, controlled by
+#                             archivirt_grafana_enabled (default: true)
+#                             → tasks/grafana.yml or tasks/grafana_disabled.yml
+# cloud-init (scripts/install_manager.sh) only bootstraps the local mirror.
+# Offline-first: packages come exclusively from the local APT mirror,
+# versions are pinned (group_vars/all/monitoring.yml), secrets come from
+# ansible-vault (group_vars/all/vault.yml). Every step fails loudly.
+# NOTE: Grafana/InfluxDB metrics are operational monitoring only; they are
+# NOT the evidence of detection/blocking (that is eve.json + per-run records).
 # ─────────────────────────────────────────────────────────────
 
-- name: Install Python analysis packages
-  ansible.builtin.pip:
-    name:
-      - pandas
-      - matplotlib
-      - seaborn
-      - jinja2
-      - paramiko
-      - PyYAML
-      - requests
-      - rich
-      - tabulate
-      - numpy
-      - scikit-learn
-    executable: pip3
+- name: Check the Grafana switch value
+  ansible.builtin.assert:
+    that:
+      - (archivirt_grafana_enabled | string | lower) in ['true', 'false', 'yes', 'no', '1', '0']
+    fail_msg: "archivirt_grafana_enabled must be true or false (group_vars/all/monitoring.yml or -e)"
+    quiet: true
 
-- name: Add InfluxDB apt repository (local mirror)
-  ansible.builtin.shell: echo "Using local mirror"
+- name: Normalise the Grafana switch (accepts -e archivirt_grafana_enabled=false)
+  ansible.builtin.set_fact:
+    _grafana_enabled: "{{ archivirt_grafana_enabled | bool }}"
+
+- name: Check that vault secrets are available
+  ansible.builtin.assert:
+    that:
+      - vault_influx_token is defined
+      - vault_influx_password is defined
+      - (not _grafana_enabled) or (vault_grafana_password is defined)
+      - (not _grafana_enabled) or (vault_grafana_secret_key is defined)
+    fail_msg: "Missing vault secrets — run with --vault-password-file ~/.archivirt/vault_pass (see group_vars/all/vault.yml.example)"
+    quiet: true
+
+- name: Use the local APT mirror only
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/archivirt-local.list
+    content: "deb [trusted=yes] {{ archivirt_mirror_url }} ./\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Refresh APT index from the local mirror
+  ansible.builtin.apt:
+    update_cache: true
   changed_when: false
 
-- name: Install InfluxDB 2 and Telegraf
+- name: Assert every required monitoring package is provided by the local mirror
+  ansible.builtin.command: "apt-cache policy {{ item.name }}"
+  register: mirror_policy
+  changed_when: false
+  failed_when: >-
+    item.version not in mirror_policy.stdout or
+    archivirt_mirror_url not in mirror_policy.stdout
+  loop: "{{ monitoring_core_packages + (monitoring_grafana_packages if _grafana_enabled else []) }}"
+  loop_control:
+    label: "{{ item.name }}={{ item.version }} (OFFLINE_ARTIFACT_MISSING if this fails)"
+
+- name: Install pinned collection packages (one transaction per package)
   ansible.builtin.apt:
+    name: "{{ item.name }}={{ item.version }}"
+    state: present
+    install_recommends: false
+  loop: "{{ monitoring_core_packages }}"
+  loop_control:
+    label: "{{ item.name }}={{ item.version }}"
+
+- name: Install pip from the local mirror
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+    install_recommends: false
+
+- name: Install Python analysis packages from the local wheelhouse (no PyPI)
+  ansible.builtin.pip:
     name:
-      - influxdb2
-      - telegraf
-    state: present
+      - pandas==2.3.3
+      - numpy==2.2.6
+      - matplotlib==3.10.9
+      - jinja2
+      - PyYAML
+      - requests
+      - paramiko
+      - rich
+      - tabulate
+    executable: pip3
+    extra_args: "--no-index --trusted-host {{ archivirt_mirror_url | urlsplit('hostname') }} --find-links {{ archivirt_mirror_url }}/wheels/"
 
-- name: Install Grafana via local mirror
-  ansible.builtin.apt:
-    name: grafana
-    state: present
-  ignore_errors: yes
-
-- name: Deploy Telegraf configuration
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../monitoring/telegraf.conf"
-    dest: /etc/telegraf/telegraf.conf
-    owner: telegraf
-    group: telegraf
-
-- name: Create ARCHIVIRT reports directory on manager
+- name: Create ARCHIVIRT directories on manager
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -56,85 +101,181 @@
     - /opt/archivirt/logs
     - /opt/archivirt/scenarios
 
-- name: Enable and start monitoring services
+# ── InfluxDB ────────────────────────────────────────────────
+- name: Enable and start InfluxDB
   ansible.builtin.systemd:
-    name: "{{ item }}"
+    name: influxdb
     enabled: true
     state: started
-  loop:
-    - influxdb
-    - telegraf
-    - grafana-server
 
-
-- name: Wait for Grafana to be ready
+- name: Wait for InfluxDB API
   ansible.builtin.uri:
-    url: "http://localhost:3000/api/health"
-    method: GET
+    url: "{{ influx_url_local }}/health"
     status_code: 200
-  register: grafana_health
-  retries: 10
+  register: influx_health
+  retries: 20
+  delay: 3
+  until: influx_health.status == 200
+  check_mode: false  # read-only probe, also runs under --check
+
+- name: Query InfluxDB onboarding state
+  ansible.builtin.uri:
+    url: "{{ influx_url_local }}/api/v2/setup"
+    method: GET
+    return_content: true
+  register: influx_setup_state
+  changed_when: false
+
+  check_mode: false  # read-only probe, also runs under --check
+
+# InfluxDB credentials are set once at onboarding; the role does not rotate
+# them (manual procedure in group_vars/all/vault.yml.example).
+
+- name: Initialise InfluxDB (first run only)
+  ansible.builtin.uri:
+    url: "{{ influx_url_local }}/api/v2/setup"
+    method: POST
+    body_format: json
+    body:
+      username: "{{ influx_admin_user }}"
+      password: "{{ influx_admin_password }}"
+      org: "{{ influx_org }}"
+      bucket: "{{ influx_bucket }}"
+      token: "{{ influx_token }}"
+      retentionPeriodSeconds: 0
+    status_code: 201
+  when: influx_setup_state.json is defined and (influx_setup_state.json.allowed | bool)
+  no_log: true
+  changed_when: true
+
+- name: Verify token, org and bucket
+  ansible.builtin.uri:
+    url: "{{ influx_url_local }}/api/v2/buckets?org={{ influx_org }}&name={{ influx_bucket }}"
+    headers:
+      Authorization: "Token {{ influx_token }}"
+    return_content: true
+  register: influx_bucket_check
+  no_log: true
+  failed_when: influx_bucket_check.status != 200 or (influx_bucket_check.json.buckets | length) != 1
+
+  check_mode: false  # read-only probe, also runs under --check
+
+# Admin password rotation: change vault_influx_password and re-run; the role
+# detects that the vault password does not sign in and sets it via the API
+# (authenticated with the token). Token rotation: playbooks/rotate_influx_token.yml
+- name: Check whether the vault InfluxDB admin password is active
+  ansible.builtin.uri:
+    url: "{{ influx_url_local }}/api/v2/signin"
+    method: POST
+    user: "{{ influx_admin_user }}"
+    password: "{{ influx_admin_password }}"
+    force_basic_auth: true
+    status_code: [204, 401]
+  register: influx_signin
+  no_log: true
+  check_mode: false  # read-only probe (creates a short-lived session only)
+
+- name: Look up the InfluxDB admin user id
+  ansible.builtin.uri:
+    url: "{{ influx_url_local }}/api/v2/users?name={{ influx_admin_user }}"
+    headers:
+      Authorization: "Token {{ influx_token }}"
+    return_content: true
+  register: influx_admin_lookup
+  no_log: true
+  when: influx_signin.status == 401
+  check_mode: false  # read-only probe
+
+- name: Set the InfluxDB admin password from the vault
+  ansible.builtin.uri:
+    url: "{{ influx_url_local }}/api/v2/users/{{ influx_admin_lookup.json.users[0].id }}/password"
+    method: POST
+    headers:
+      Authorization: "Token {{ influx_token }}"
+    body_format: json
+    body:
+      password: "{{ influx_admin_password }}"
+    status_code: 204
+  no_log: true
+  when: influx_signin.status == 401
+  changed_when: true
+
+- name: Vault InfluxDB admin password signs in
+  ansible.builtin.uri:
+    url: "{{ influx_url_local }}/api/v2/signin"
+    method: POST
+    user: "{{ influx_admin_user }}"
+    password: "{{ influx_admin_password }}"
+    force_basic_auth: true
+    status_code: 204
+  no_log: true
+  check_mode: false  # read-only probe
+  when: not ansible_check_mode or influx_signin.status == 204
+
+# ── Telegraf (manager system metrics) ───────────────────────
+
+- name: Deploy Telegraf configuration (no secret inside)
+  ansible.builtin.copy:
+    src: "{{ archivirt_project_dir }}/monitoring/telegraf.conf"
+    dest: /etc/telegraf/telegraf.conf
+    owner: root
+    group: telegraf
+    mode: "0640"
+  notify: Restart telegraf
+
+- name: Provide the InfluxDB token to Telegraf via its environment file
+  ansible.builtin.copy:
+    dest: /etc/default/telegraf
+    content: |
+      INFLUX_TOKEN={{ influx_token }}
+      INFLUX_URL={{ influx_url_local }}
+    owner: root
+    group: telegraf
+    mode: "0640"
+  no_log: true
+  notify: Restart telegraf
+
+- name: Enable and start Telegraf
+  ansible.builtin.systemd:
+    name: telegraf
+    enabled: true
+    state: started
+
+# ── Grafana (optional UI) ───────────────────────────────────
+- name: Deploy and secure Grafana
+  ansible.builtin.include_tasks: grafana.yml
+  when: _grafana_enabled
+
+- name: Keep Grafana disabled (package and data preserved)
+  ansible.builtin.include_tasks: grafana_disabled.yml
+  when: not _grafana_enabled
+
+- name: Apply pending restarts before validation
+  ansible.builtin.meta: flush_handlers
+
+# ── Collection validation (independent of Grafana) ──────────
+- name: Telegraf metrics actually reached InfluxDB (last 2 min, this host)
+  ansible.builtin.uri:
+    url: "{{ influx_url_local }}/api/v2/query?org={{ influx_org }}"
+    method: POST
+    headers:
+      Authorization: "Token {{ influx_token }}"
+      Content-Type: application/vnd.flux
+      Accept: application/csv
+    body: >-
+      from(bucket: "{{ influx_bucket }}") |> range(start: -2m)
+      |> filter(fn: (r) => r._measurement == "cpu" and r.host == "{{ inventory_hostname }}")
+      |> count() |> limit(n: 1)
+    return_content: true
+  register: influx_points
+  no_log: true
+  retries: 12
   delay: 5
-  until: grafana_health.status == 200
+  until: influx_points.status == 200 and (influx_points.content | regex_search('_value'))
+  check_mode: false  # read-only probe, also runs under --check
 
-- name: Configure Grafana datasource InfluxDB
-  ansible.builtin.uri:
-    url: "http://localhost:3000/api/datasources"
-    method: POST
-    user: admin
-    password: admin
-    force_basic_auth: yes
-    body_format: json
-    body:
-      name: "InfluxDB-ARCHIVIRT"
-      type: "influxdb"
-      url: "http://10.0.5.10:8086"
-      access: "proxy"
-      jsonData:
-        version: "Flux"
-        organization: "archivirt"
-        defaultBucket: "archivirt-metrics"
-      secureJsonData:
-        token: "archivirt-telegraf-token"
-    status_code: [200, 409]
-  ignore_errors: yes
-
-- name: Import Grafana dashboard
-  ansible.builtin.uri:
-    url: "http://localhost:3000/api/dashboards/import"
-    method: POST
-    user: admin
-    password: admin
-    force_basic_auth: yes
-    body_format: json
-    body:
-      dashboard: "{{ lookup('file', archivirt_project_dir + '/monitoring/grafana/dashboard.json') | from_json }}"
-      overwrite: true
-      folderId: 0
-    status_code: [200, 412]
-  ignore_errors: yes
-
-
-- name: Set Grafana admin password
-  ansible.builtin.uri:
-    url: "http://localhost:3000/api/admin/users/1/password"
-    method: PUT
-    user: admin
-    password: admin
-    force_basic_auth: yes
-    body_format: json
-    body:
-      password: "yasnemanegre"
-    status_code: [200, 412]
-  ignore_errors: yes
-
-- name: Print manager VM ready message
+- name: Manager monitoring stack validated
   ansible.builtin.debug:
-    msg: |
-      ════════════════════════════════════════════
-      Manager VM configured:
-        InfluxDB  : http://10.0.5.10:8086
-        Grafana   : http://10.0.5.10:3000
-        Telegraf  : collecting metrics
-        Reports   : /opt/archivirt/reports/
-      ════════════════════════════════════════════
+    msg:
+      - "InfluxDB {{ influx_url_local }} org={{ influx_org }} bucket={{ influx_bucket }}: token OK, metrics present"
+      - "{{ 'Grafana http://10.0.5.10:3000 (authentication required): datasource uid=' ~ grafana_datasource_uid ~ ' healthy, dashboard archivirt-main provisioned' if _grafana_enabled else 'Grafana disabled (archivirt_grafana_enabled=false): service stopped, port 3000 closed' }}"

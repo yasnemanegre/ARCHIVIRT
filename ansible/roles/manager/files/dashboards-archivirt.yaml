@@ -1,0 +1,11 @@
+# Managed by Ansible (role manager).
+apiVersion: 1
+providers:
+  - name: archivirt
+    orgId: 1
+    folder: ARCHIVIRT
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
