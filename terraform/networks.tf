@@ -76,6 +76,7 @@ resource "libvirt_network" "capture" {
 resource "libvirt_network" "manager" {
   name      = "archivirt-net-manager"
   mode      = "nat"
+  bridge    = "virbr1"  # pinned: isolation allow-list, archivirt-ovs-ip.sh and v3.1 route use virbr1
   addresses = [var.net_manager_cidr]
   autostart = true
   dhcp {

@@ -60,6 +60,13 @@ resource "libvirt_volume" "manager_disk" {
   size           = var.vm_disk_gb * 1073741824
 }
 
+# Staged start (host RAM 6.9 GiB for 6.9 GiB of VMs): wave 1 = manager + monitor,
+# wave 2 = attacker + targets (started later, one by one, by 04_configure.sh).
+variable "archivirt_start_wave2" {
+  type    = bool
+  default = true
+}
+
 resource "libvirt_domain" "manager" {
   name   = "archivirt-manager"
   vcpu   = var.vm_vcpu
@@ -91,6 +98,13 @@ resource "libvirt_domain" "manager" {
   }
 
   autostart = true
+
+  # Cycle fix (B3, 2026-10-08 apply failure): libvirt must attach this domain's
+  # OVS-backed NICs with <virtualport type="openvswitch"/>, otherwise
+  # "Unable to add bridge ovs-* port vnetX: Operation not supported".
+  xml {
+    xslt = file("${path.module}/xslt/ovs-domain-interfaces.xslt")
+  }
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -128,6 +142,10 @@ resource "libvirt_domain" "attacker" {
   vcpu   = var.vm_vcpu
   memory = var.vm_ram_attacker
 
+  # Memory strategy (cycle): created stopped when archivirt_start_wave2=false;
+  # 04_configure.sh then starts them one at a time after manager + monitor.
+  running = var.archivirt_start_wave2
+
   cloudinit = libvirt_cloudinit_disk.attacker.id
 
   network_interface {
@@ -146,6 +164,13 @@ resource "libvirt_domain" "attacker" {
   }
 
   autostart = true
+
+  # Cycle fix (B3, 2026-10-08 apply failure): libvirt must attach this domain's
+  # OVS-backed NICs with <virtualport type="openvswitch"/>, otherwise
+  # "Unable to add bridge ovs-* port vnetX: Operation not supported".
+  xml {
+    xslt = file("${path.module}/xslt/ovs-domain-interfaces.xslt")
+  }
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -234,7 +259,7 @@ resource "libvirt_domain" "monitor" {
   }
 
   autostart = true
-  running   = false
+  running   = true   # cycle fix (B2): the IDS VM must run after apply
 
   xml {
     xslt = file("${path.module}/xslt/ovs-domain-interfaces.xslt")
@@ -292,6 +317,10 @@ resource "libvirt_domain" "target" {
   vcpu   = var.vm_vcpu
   memory = var.vm_ram_target
 
+  # Memory strategy (cycle): created stopped when archivirt_start_wave2=false;
+  # 04_configure.sh then starts them one at a time after manager + monitor.
+  running = var.archivirt_start_wave2
+
   cloudinit = libvirt_cloudinit_disk.target[each.key].id
 
   network_interface {
@@ -309,4 +338,11 @@ resource "libvirt_domain" "target" {
   }
 
   autostart = true
+
+  # Cycle fix (B3, 2026-10-08 apply failure): libvirt must attach this domain's
+  # OVS-backed NICs with <virtualport type="openvswitch"/>, otherwise
+  # "Unable to add bridge ovs-* port vnetX: Operation not supported".
+  xml {
+    xslt = file("${path.module}/xslt/ovs-domain-interfaces.xslt")
+  }
 }

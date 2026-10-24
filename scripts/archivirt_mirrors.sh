@@ -52,6 +52,18 @@ fi
 
 ATTACK_PORT=$(get_monitor_port "ovs-attack" "$ATTACK_MAC")
 TARGET_PORT=$(get_monitor_port "ovs-targets" "$TARGET_MAC")
+# Mirror scope (MANDAT 2026-10-20, admin-traffic false positives):
+#   dataplane (default): mirror ONLY the monitor inline ports (ens5 on ovs-attack, ens4 on ovs-targets),
+#     i.e. exactly the routed attacker<->targets data plane; host<->VM administration (SSH/Ansible/sampler)
+#     enters the bridges through the host internal port and is NOT copied to the IDS.
+#   all: previous behaviour (select-all), kept for reproducing earlier runs.
+MIRROR_SCOPE="${ARCHIVIRT_MIRROR_SCOPE:-dataplane}"
+case "$MIRROR_SCOPE" in dataplane|all) ;; *) echo "ERROR: ARCHIVIRT_MIRROR_SCOPE=$MIRROR_SCOPE (dataplane|all)"; exit 1;; esac
+INLINE_ATTACK_PORT=$(get_monitor_port "ovs-attack" "52:54:00:2a:cb:a8")    # monitor ens5
+INLINE_TARGET_PORT=$(get_monitor_port "ovs-targets" "52:54:00:42:cb:e6")   # monitor ens4
+if [ "$MIRROR_SCOPE" = dataplane ] && { [ -z "$INLINE_ATTACK_PORT" ] || [ -z "$INLINE_TARGET_PORT" ]; }; then
+  echo "ERROR: monitor inline ports (ens4/ens5) could not be resolved"; exit 1
+fi
 
 if [ -z "$ATTACK_PORT" ] || [ -z "$TARGET_PORT" ]; then
   echo "ERROR: IDS capture ports could not be resolved"
@@ -69,17 +81,19 @@ sudo ovs-vsctl clear Bridge ovs-targets mirrors
 
 sudo ovs-vsctl \
   -- --id=@attack_out get Port "$ATTACK_PORT" \
+  $( [ "$MIRROR_SCOPE" = dataplane ] && echo "-- --id=@attack_sel get Port $INLINE_ATTACK_PORT" ) \
   -- --id=@attack_mirror create Mirror \
        name="$MIRROR_ATTACK" \
-       select-all=true \
+       $( [ "$MIRROR_SCOPE" = dataplane ] && echo "select-src-port=@attack_sel select-dst-port=@attack_sel" || echo "select-all=true" ) \
        output-port=@attack_out \
   -- add Bridge ovs-attack mirrors @attack_mirror
 
 sudo ovs-vsctl \
   -- --id=@target_out get Port "$TARGET_PORT" \
+  $( [ "$MIRROR_SCOPE" = dataplane ] && echo "-- --id=@target_sel get Port $INLINE_TARGET_PORT" ) \
   -- --id=@target_mirror create Mirror \
        name="$MIRROR_TARGET" \
-       select-all=true \
+       $( [ "$MIRROR_SCOPE" = dataplane ] && echo "select-src-port=@target_sel select-dst-port=@target_sel" || echo "select-all=true" ) \
        output-port=@target_out \
   -- add Bridge ovs-targets mirrors @target_mirror
 
@@ -88,7 +102,7 @@ echo "  ovs-attack  -> $ATTACK_PORT ($IDS_ATTACK_INTERFACE)"
 echo "  ovs-targets -> $TARGET_PORT ($IDS_TARGET_INTERFACE)"
 
 echo "[ARCHIVIRT] Mirror status:"
-sudo ovs-vsctl --columns=name,output_port,select_all,statistics list Mirror \
+sudo ovs-vsctl --columns=name,output_port,select_all,select_src_port,select_dst_port,statistics list Mirror \
   | grep -E "name|output_port|select_all|statistics" || true
 
 # --- Show OVS topology -------------------------------------------------------

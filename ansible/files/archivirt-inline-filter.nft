@@ -1,0 +1,27 @@
+#!/usr/sbin/nft -f
+# ARCHIVIRT — transit filter on archivirt-monitor-ids (D-10, proposal 2026-10-20, series ARCHIVIRT-P2-VAL2).
+# Dedicated table: does not touch the iptables-nft tables (ip filter: NFQUEUE rules of the IPS role).
+# Only the experimental data plane may be routed by the monitor:
+#   ens5 (attack, 10.0.4.0/24) -> ens4 (targets, 10.0.2.0/24): new + established flows
+#   ens4 -> ens5: replies only (ct established/related); targets cannot open flows towards the attacker
+# Everything else forwarded by the monitor (ens3 = 10.0.3.0/24 supervision, IPv6, any other pair) is dropped.
+# Priority filter-10: evaluated BEFORE iptables FORWARD (priority 0). A drop here is final; an accept here
+# does not skip the later iptables NFQUEUE rules (IPS mode keeps working on the same flows).
+# Idempotent load (one transaction). Rollback: nft delete table inet archivirt_inline
+add table inet archivirt_inline
+delete table inet archivirt_inline
+table inet archivirt_inline {
+    chain forward {
+        type filter hook forward priority filter - 10; policy drop;
+        iifname "ens5" oifname "ens4" ip saddr 10.0.4.0/24 ip daddr 10.0.2.0/24 counter accept comment "archivirt: attack -> targets"
+        iifname "ens4" oifname "ens5" ip saddr 10.0.2.0/24 ip daddr 10.0.4.0/24 ct state established,related counter accept comment "archivirt: targets -> attack (replies only)"
+        counter drop comment "archivirt: any other transit (supervision ens3, IPv6, new flows from targets)"
+    }
+    # MANDAT 2026-10-20 (P-B): the monitor itself accepts nothing NEW from the experimental segments.
+    # Administration stays on ens3 (10.0.3.10). Replies to flows the monitor opened are still accepted.
+    chain input {
+        type filter hook input priority filter - 10; policy accept;
+        iifname { "ens4", "ens5" } ct state established,related accept
+        iifname { "ens4", "ens5" } counter drop comment "archivirt: no new connection to the monitor from attack/target segments"
+    }
+}
