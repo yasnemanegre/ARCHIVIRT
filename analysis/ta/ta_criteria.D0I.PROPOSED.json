@@ -1,0 +1,25 @@
+{
+  "schema": "archivirt-ta-criteria/1",
+  "status": "PROPOSED",
+  "status_note": "Not signed. Decision M-6 (VALIDATION-FINALE-ENGINE-DROPS-20261022T215833Z/SCIENTIFIC_VALIDITY.md section 5) is pending. A verdict computed with these criteria is PROVISIONAL.",
+  "arm": "D0I",
+  "sources": {
+    "TA": "VALIDATION-FINALE-ENGINE-DROPS-20261022T215833Z/SCIENTIFIC_VALIDITY.md section 6 (T-A a/b/c and refutations); ROOT_CAUSE_ANALYSIS.md section 5 item 3",
+    "TA_origin": "RESOLUTION-ENGINE-DROPS-20261022T205536Z/CAPTURE_FIX.md section 5 (T-A row, Gardes row)",
+    "geometry_values": "measured V2 / 1600 B / 2060 frames / 2 sockets (RESOLUTION evidence/ring_v2_evidence.txt; re-measured VALIDATION-FINALE evidence/geometry_r1_live_readonly_service_instance.txt)",
+    "coverage": "VALIDATION-FINALE PARSER_VALIDATION.md section 4 (PATCH-2r1)",
+    "collection": "VALIDATION-FINALE CAPTURE_CONFIGURATION_REVIEW.md section 4 (ENGINE_EXTRA_STATUS, engine_stop.txt)",
+    "M3_timing_guard": "RESOLUTION CAPTURE_FIX.md section 5 Gardes: stats writes outside [attack - 0.1 s ; end + 0.5 s]; overlap -> flag the run",
+    "rx_naming": "ARCHIVIRT campaign_v1/engines/suricata.sh lines 84-88: single interface -> RX#nn without suffix"
+  },
+  "TA_a_geometry": {"layout": "TPACKET_V2", "frames_per_socket": 2060, "sockets": 2, "zero_copy_message_must_be_absent": true},
+  "TA_b_per_rx": {"scope": "every run with kernel_drops > 0", "rule": "dropped > 0 on EVERY RX thread and sum(RX dropped) == stats.log Total kernel_drops", "refutation": "drops on a strict subset of the RX threads (with complete, consistent per-RX data)"},
+  "TA_c_residual": {"scope": "every run with kernel_drops > 0", "formula": "capture.kernel_packets - capture.kernel_drops - decoder.pkts (last stats.log record, Total rows)", "expected": 0, "prerequisite": "use-emergency-flush disabled (PATCH-3b) for the run", "refutation": "residual > 0 with the prerequisite met", "scope_note": "SCIENTIFIC_VALIDITY 6(c) states no scope; ROOT_CAUSE section 5 states 'in every run with drops'. The evaluator applies the drop-run scope and REPORTS non-drop runs separately (scope = decision point D-TA-1)."},
+  "TA_series": {"requires_at_least_one_drop_run": true, "note": "with no drop run the mechanism is not observable (SCIENTIFIC_VALIDITY 4: P(>=1 drop run)=0.965 at p=6/21)"},
+  "guards": {
+    "M3_stats_write_window_s": {"before_attack_start": 0.1, "after_attack_end": 0.5, "action": "FLAG (does not change the T-A verdict)"},
+    "rss_delta_mib_max": {"value": 30, "status": "UNDEFINED_REFERENCE", "note": "CAPTURE_FIX says 'ecart de RSS <= 30 Mio' versus D0 and P2-VAL2 without defining the statistic (mean? median? per run?) -> reported descriptively, never used for a verdict (decision D-TA-2)"},
+    "cpu_comparison": {"status": "UNDEFINED", "note": "no threshold defined anywhere -> descriptive only"}
+  },
+  "contention_patch6": {"status": "EXPLORATORY", "note": "SCIENTIFIC_VALIDITY 6: ratio wait/run of RX higher in drop runs, exploratory, no threshold -> descriptive only"}
+}
