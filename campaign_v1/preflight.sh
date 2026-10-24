@@ -4,7 +4,7 @@
 # Output per scenario: "<SCN>=READY" or "<SCN>=PREREQUISITE_MISSING(<what>)".
 set +e
 
-ROOT="/home/archivirt/ARCHIVIRT"
+ROOT="$(realpath -e -- "$(dirname -- "$(realpath -e -- "${BASH_SOURCE[0]}")")/..")"   # STEP2: tree containing this script (read-only use: inventory)
 INVENTORY="$ROOT/ansible/inventory/hosts.ini"
 
 ans() {

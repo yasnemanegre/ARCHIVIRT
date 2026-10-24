@@ -9,6 +9,7 @@ changed between snapshots is reported as null with a reason (never a fake 0).
 Usage: compute_perf.py perf_start.txt perf_end.txt > perf.json
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -60,14 +61,16 @@ def main():
     if rss_mb is None:
         notes.append("rss_mb=null: no Suricata RSS (expected in baseline mode)")
 
-    # Interface capture volume (ens6 + ens7).
+    # Interface capture volume: interfaces the engine actually reads (ARCHIVIRT_CAPTURE_IFACES, comma list;
+    # default ens6,ens7 = historical behaviour). With ens7 only, ens6 still receives its mirror copy.
+    ifaces = [i.strip() for i in (os.environ.get("ARCHIVIRT_CAPTURE_IFACES") or "ens6,ens7").split(",") if i.strip()]
     def delta(key):
         a, b = num(s.get(key)), num(e.get(key))
         return (b - a) if (a is not None and b is not None and b >= a) else None
 
-    pkts = [delta(f"{i}_rx_packets") for i in ("ens6", "ens7")]
-    byts = [delta(f"{i}_rx_bytes") for i in ("ens6", "ens7")]
-    drps = [delta(f"{i}_rx_dropped") for i in ("ens6", "ens7")]
+    pkts = [delta(f"{i}_rx_packets") for i in ifaces]
+    byts = [delta(f"{i}_rx_bytes") for i in ifaces]
+    drps = [delta(f"{i}_rx_dropped") for i in ifaces]
 
     tot_pkts = sum(x for x in pkts if x is not None) if any(x is not None for x in pkts) else None
     tot_byts = sum(x for x in byts if x is not None) if any(x is not None for x in byts) else None

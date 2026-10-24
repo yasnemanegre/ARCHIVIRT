@@ -1,0 +1,15 @@
+# ARCHIVIRT Snort {{ snort3_version }} — passive IDS on ONE capture interface (instance = interface name,
+# allowed: {{ snort3_capture_interfaces }}). Installed DISABLED; started by the campaign / validation only.
+[Unit]
+Description=ARCHIVIRT Snort 3 IDS (passive afpacket) on %i
+After=network-online.target
+Conflicts=snort3-ips.service
+
+[Service]
+Type=simple
+ExecStart={{ snort3_prefix }}/bin/snort -c /etc/snort3/snort.lua --daq-dir {{ snort3_prefix }}/lib/daq --daq afpacket --daq-mode passive -i %i -l /var/log/snort3/%i
+ExecStartPre=/bin/mkdir -p /var/log/snort3/%i
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

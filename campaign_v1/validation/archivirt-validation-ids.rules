@@ -1,0 +1,7 @@
+# ARCHIVIRT STEP3 — VALIDATION ruleset (IDS). NOT the Article-2 ruleset; archivirt.rules is never touched.
+# Purpose: prove that a running engine loads THIS file and fires on a controlled marker, and stays silent on
+# legitimate traffic. SID range 9100000-9100099 reserved for validation. Marker sent by the attacker:
+#   curl -s -A "ARCHIVIRT-VALIDATION-CANARY-7f3a" http://<target>/      (positive, must alert)
+#   curl -s http://<target>/                                            (legitimate, must NOT alert)
+alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"ARCHIVIRT VALIDATION canary user-agent"; flow:established,to_server; http.user_agent; content:"ARCHIVIRT-VALIDATION-CANARY-7f3a"; sid:9100001; rev:1;)
+alert icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"ARCHIVIRT VALIDATION canary icmp payload"; itype:8; content:"ARCHIVIRT-ICMP-CANARY"; sid:9100002; rev:1;)

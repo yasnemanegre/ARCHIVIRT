@@ -1,0 +1,24 @@
+---
+# ARCHIVIRT — ids_snort defaults (STEP3.2). Snort 3 ONLY: the Ubuntu package "snort" is Snort 2.9
+# and is never installed by this role (refused if present).
+# Reference versions (STEP3.1 D-V2, PROPOSED): continuity with the frozen Article-2 Snort 3 results
+# (results/snort3_final_results.json: "Snort 3.1.74.0") and the verified local sources.
+snort3_version: "3.1.74.0"
+libdaq_version: "3.0.13"
+snort3_src_sha256: "4a4529e74bc202303c0330ae8b2317f0bef3ac92ae7216df8cfedfce24ddd129"   # snort3-3.1.74.0.tar.gz
+libdaq_src_sha256: "3a48b934bc45a1fe44b3887185d33a76a042c1d10aa177e3e7c417d83da67213"   # libdaq-3.0.13.tar.gz
+archivirt_offline_dir: /home/archivirt/archivirt-offline          # controller-side source archives (src/)
+snort3_prefix: /usr/local
+snort3_build_dir: /usr/local/src/archivirt-snort3
+snort3_capture_interfaces: "ens6,ens7"                              # passive capture (NOT ens4/ens5 = inline)
+snort3_rules_file: /etc/snort3/rules/local.rules
+# No default on purpose (owner decisions, the role refuses to run without them):
+#   ids_mode               : ids | ips
+#   snort3_install_method  : source  (LibDAQ + Snort 3 compiled from the verified archives, outside dpkg)
+#                          | package (local package "snort3={{ snort3_version }}" served by the mirror)
+#   archivirt_version_lock : path (controller) of the APPROVED version lock used by the install guard
+# libfl-dev: provides FlexLexer.h, REQUIRED by Snort 3.1.74.0 (cmake/FindFlexLexer.cmake); not shipped in the flex .deb.
+snort3_build_deps_ids: [build-essential, cmake, flex, libfl-dev, bison, pkg-config, autoconf, automake, libtool,
+  libpcap-dev, libpcre3-dev, libdumbnet-dev, libhwloc-dev, libluajit-5.1-dev, libssl-dev, zlib1g-dev,
+  liblzma-dev, libhyperscan-dev, uuid-dev, libunwind-dev, linux-libc-dev]
+snort3_build_deps_ips_extra: [libmnl-dev]                          # LibDAQ nfq module (IPS)

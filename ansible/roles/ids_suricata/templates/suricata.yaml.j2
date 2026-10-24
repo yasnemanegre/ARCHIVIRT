@@ -75,6 +75,9 @@ outputs:
       filename: stats.log
       totals: yes
       threads: no
+      # mission 2026-10-20: print zero-valued counters too, so that 0 (measured) is never confused
+      # with an absent counter (MISSING) - e.g. capture.kernel_drops, ips.blocked
+      null-values: yes
 
 # Application layer parsers
 app-layer:
@@ -147,12 +150,13 @@ runmode: autofp
 
 # Capture — IDS (af-packet) ou IPS (nfqueue)
 {% if ids_mode | default('ids') == 'ips' %}
-nfqueue:
-  mode: repeat
-  repeat-mark: 1
-  repeat-mask: 1
-  route-queue: 2
-  batchcount: 20
+# STEP3: Suricata 6 reads the key "nfq" (the former "nfqueue" key was silently ignored -> built-in
+# defaults). Mode "accept": the verdict is final, no re-injection, so the scoped NFQUEUE rules
+# (role / campaign) need no mark match. fail-open: no -> if Suricata cannot keep up, packets are
+# NOT passed uninspected (an IPS that fails open would invalidate a blocking test).
+nfq:
+  mode: accept
+  fail-open: no
 {% else %}
 af-packet:
 {% for capture_interface in (ids_capture_interfaces | default('ens6,ens7')).split(',') %}

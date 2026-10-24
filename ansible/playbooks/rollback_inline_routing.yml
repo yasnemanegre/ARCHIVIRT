@@ -1,0 +1,48 @@
+# ARCHIVIRT mission — ROLLBACK of enable_inline_routing.yml on the lab VMs only (host untouched).
+- name: Rollback inline routing (VMs)
+  hosts: monitor:attacker:targets
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stop and disable the inline routing unit
+      ansible.builtin.systemd: { name: archivirt-inline-routing.service, state: stopped, enabled: false }
+      failed_when: false
+    - name: Remove unit and sysctl drop-in
+      ansible.builtin.file: { path: "{{ item }}", state: absent }
+      loop: [/etc/systemd/system/archivirt-inline-routing.service, /etc/sysctl.d/99-archivirt-inline.conf]
+    - name: Reload systemd
+      ansible.builtin.systemd: { daemon_reload: true }
+    - name: Forwarding off on the monitor
+      ansible.builtin.command: sysctl -w net.ipv4.ip_forward=0
+      when: inventory_hostname in groups['monitor']
+    - name: Remove the attacker route to the targets through the monitor
+      ansible.builtin.command: ip route del 10.0.2.0/24 via 10.0.4.200 dev ens3
+      when: inventory_hostname in groups['attacker']
+      failed_when: false
+    - name: Remove the targets' return route through the monitor
+      ansible.builtin.command: ip route del 10.0.4.0/24 via 10.0.2.200 dev ens3
+      when: inventory_hostname in groups['targets']
+      failed_when: false
+    # D-11 (2026-10-20): enable_inline_routing.yml rewrites the monitor's connected routes with
+    # "ip route replace <net> dev <if>" (no proto kernel, no src). Restore them exactly as the kernel creates them.
+    - name: Restore the monitor's connected routes (proto kernel, scope link, src)
+      ansible.builtin.command: "ip route replace {{ item.net }} dev {{ item.dev }} proto kernel scope link src {{ item.src }}"
+      loop:
+        - { net: 10.0.2.0/24, dev: ens4, src: 10.0.2.200 }
+        - { net: 10.0.4.0/24, dev: ens5, src: 10.0.4.200 }
+      when: inventory_hostname in groups['monitor']
+    - name: Verify the rolled-back state (fails instead of silently ignoring)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        r=$(ip route)
+        case "{{ inventory_hostname }}" in
+          archivirt-monitor-ids)
+            [ "$(sysctl -n net.ipv4.ip_forward)" = 0 ]
+            echo "$r" | grep -qE '^10\.0\.2\.0/24 dev ens4 proto kernel scope link src 10\.0\.2\.200 ?$'
+            echo "$r" | grep -qE '^10\.0\.4\.0/24 dev ens5 proto kernel scope link src 10\.0\.4\.200 ?$' ;;
+          archivirt-attacker) ! echo "$r" | grep -q '^10.0.2.0/24 via 10.0.4.200' ;;
+          *) ! echo "$r" | grep -q '^10.0.4.0/24 via 10.0.2.200' ;;
+        esac
+        [ ! -e /etc/systemd/system/archivirt-inline-routing.service ]
+      args: { executable: /bin/bash }
+      changed_when: false

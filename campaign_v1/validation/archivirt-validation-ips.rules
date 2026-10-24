@@ -1,0 +1,5 @@
+# ARCHIVIRT STEP3 — VALIDATION ruleset (IPS, NFQUEUE). Same markers as the IDS file, action "drop".
+#   positive : curl -A "ARCHIVIRT-VALIDATION-CANARY-7f3a" http://<target>/  -> request dropped (timeout / no HTTP 200), drop logged
+#   legitimate: curl http://<target>/                                       -> HTTP 200, no drop event
+drop http $EXTERNAL_NET any -> $HOME_NET any (msg:"ARCHIVIRT VALIDATION canary user-agent (drop)"; flow:established,to_server; http.user_agent; content:"ARCHIVIRT-VALIDATION-CANARY-7f3a"; sid:9100011; rev:1;)
+drop icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"ARCHIVIRT VALIDATION canary icmp payload (drop)"; itype:8; content:"ARCHIVIRT-ICMP-CANARY"; sid:9100012; rev:1;)
