@@ -28,6 +28,20 @@ vars:
 
 default-log-dir: /var/log/suricata
 
+# Engine log (RCA D0 2026-10-22, PATCH-3a): the instance runs with -D and the yaml had no logging section, so every
+# message after daemonisation (AF_PACKET ring parameters, per-RX-thread exit statistics "Kernel: Packets .., dropped ..")
+# was lost. File output at level perf, written in the run's -l directory (offline bench: start-up and shutdown lines
+# only, cost not measurable). --set cannot create this section (tested), hence the yaml.
+logging:
+  default-log-level: notice
+  outputs:
+  - console:
+      enabled: yes
+  - file:
+      enabled: yes
+      level: perf
+      filename: suricata.log
+
 # Outputs
 outputs:
   - fast:
@@ -59,7 +73,10 @@ outputs:
         - ssh
         - stats:
             totals: yes
-            threads: no
+            # RCA D0 2026-10-22 (PATCH-3a): per-thread counters (RX#01-ens7, RX#02-ens7 ...) in the EVE stats events,
+            # to locate kernel drops per socket. stats.log (totals only, parsed by the stop-criteria evaluator and
+            # by the DIAG analyzer) is deliberately left unchanged.
+            threads: yes
             deltas: no
 
   - pcap-log:
@@ -68,7 +85,8 @@ outputs:
       limit: 100mb
       max-files: 10
       mode: normal
-      dir: /var/log/suricata/pcap
+      # RCA D0 2026-10-22 (PATCH-3a): no "dir" -> the pcap is written in the -l directory of the instance (one file per
+      # campaign run, collected with the run) instead of a shared 10-file rotation that erased the per-packet evidence.
 
   - stats:
       enabled: yes
@@ -166,11 +184,16 @@ af-packet:
     cluster-type: cluster_flow
     defrag: yes
     use-mmap: yes
-    tpacket-v3: yes
+    # RCA D0 2026-10-22 (PATCH-3a): Suricata 6.0.4 enables tpacket v3 only in runmode 'workers' ("tpacket v3 is only
+    # implemented for 'workers' runmode. Switching to tpacket v2.") - with runmode autofp the ring has ALWAYS been
+    # TPACKET_V2 (measured: 103 blocks x 20 frames of 1600 B = 2060 frames per socket). Declared as it is really used;
+    # block-size / block-timeout are tpacket-v3 settings (inert here) and were removed. No effective change.
+    tpacket-v3: no
     ring-size: 2048
-    block-size: 32768
-    block-timeout: 10
-    use-emergency-flush: yes
+    # RCA D0 2026-10-22 (PATCH-3b): 'yes' discards the ring after a kernel drop WITHOUT counting the discarded packets
+    # (8/70/7 packets accepted then never inspected in D0). 'no': every loss stays visible as capture.kernel_drops.
+    # Acts only after a kernel drop, i.e. in runs already INVALID under engine_drops (abs_max 0).
+    use-emergency-flush: no
 {% endfor %}
 
 pcap:
