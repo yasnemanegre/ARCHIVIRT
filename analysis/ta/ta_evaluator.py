@@ -2,7 +2,7 @@
 """ARCHIVIRT - T-A criteria evaluator for a diagnostic arm (D0I). PREPARED, NOT INTEGRATED in the repository.
 
 Read-only on its inputs. Evaluates, per run and for the series, the criteria of ta_criteria.*.json (sourced, status
-PROPOSED until decision M-6; r1 = D-B2-2 applied): (a) effective AF_PACKET geometry + no zero-copy, (b) per-RX drops in drop runs,
+PROPOSED until decision M-6; r1 = D-B2-2 applied; r2 = D-TA-3 option A): (a) effective AF_PACKET geometry + no zero-copy, (b) per-RX drops in drop runs,
 (c) residual kernel_packets - kernel_drops - decoder.pkts in drop runs, plus coverage / collection / guards.
 Fail-safe: anything missing, truncated, invalid, contradictory or incomplete gives NOT_EVALUABLE, never a favourable
 verdict. Engine totals and coverage are read with the TESTED fail-safe parser PATCH-1r1+2r1 (vendor/, sha checked).
@@ -13,6 +13,7 @@ ENGINE_EXTRA_SHA256SUMS, capture_geometry.json, suricata.log}.
 Usage: ta_evaluator.py --series DIR --scenario SCN-001 --criteria ta_criteria.json --emergency-flush disabled|enabled|unknown --out FILE
 Exit: 0 DEMONSTRATED with APPROVED criteria; 5 DEMONSTRATED but criteria not approved (provisional);
       3 REFUTED or NOT_MET; 4 NOT_EVALUABLE; 2 usage / integrity error. The output file is never inside the series."""
+import calendar, datetime
 import argparse, glob, hashlib, importlib.util, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -83,21 +84,42 @@ def per_rx_from_log(text):
         rows[name] = (pk, dr)
     return rows, bad
 
-def per_rx_from_eve(eve_path):
-    last = None
+def last_record_epoch(stats_log):
+    """UTC epoch (s) of the LAST 'Date: MM/DD/YYYY -- HH:MM:SS' record of stats.log; None if absent/invalid."""
+    try: dates = re.findall(r"(?m)^Date: (\d\d)/(\d\d)/(\d{4}) -- (\d\d):(\d\d):(\d\d)", open(stats_log).read())
+    except Exception: return None
+    if not dates: return None
+    mo, dd, yy, hh, mi, ss = (int(x) for x in dates[-1])
+    try: return calendar.timegm((yy, mo, dd, hh, mi, ss, 0, 0, 0))
+    except Exception: return None
+
+def per_rx_from_eve(eve_path, target_epoch):
+    """D-TA-3 (M-6, option A): per-RX counters from the eve 'stats' event emitted in the SAME second as the final stats.log
+    record (same stats snapshot as the Total used by TA-b). Never 'the last event' blindly."""
+    if target_epoch is None: return None, "final stats.log record date unavailable"
+    found = []
     try:
         for line in open(eve_path):
-            if '"event_type":"stats"' in line: last = json.loads(line)
-    except Exception as e: return None, "eve unreadable (%s)" % type(e).__name__
-    if last is None or "threads" not in last.get("stats", {}): return None, "no per-thread stats in eve"
-    rows = {}
-    for name, t in last["stats"]["threads"].items():
-        if not RX_NAME.fullmatch(name): continue
-        c = t.get("capture") or {}
-        pk, dr = c.get("kernel_packets"), c.get("kernel_drops")
-        if not (isinstance(pk, int) and isinstance(dr, int)) or pk < 0 or dr < 0 or dr > pk: return None, "invalid per-thread counters " + name
-        rows[name] = (pk, dr)
-    return (rows or None), (None if rows else "no RX thread in eve stats")
+            if '"event_type":"stats"' not in line: continue
+            e = json.loads(line)
+            try: t = int(datetime.datetime.strptime(e["timestamp"], "%Y-%m-%dT%H:%M:%S.%f%z").timestamp())
+            except Exception: continue
+            if t == target_epoch: found.append(e)
+    except Exception as ex: return None, "eve unreadable (%s)" % type(ex).__name__
+    if not found: return None, "no eve stats event simultaneous with the final stats.log record"
+    snaps = []
+    for e in found:
+        if "threads" not in e.get("stats", {}): return None, "no per-thread stats in the simultaneous eve event"
+        rows = {}
+        for name, t in e["stats"]["threads"].items():
+            if not RX_NAME.fullmatch(name): continue
+            c = t.get("capture") or {}
+            pk, dr = c.get("kernel_packets"), c.get("kernel_drops")
+            if not (isinstance(pk, int) and isinstance(dr, int)) or pk < 0 or dr < 0 or dr > pk: return None, "invalid per-thread counters " + name
+            rows[name] = (pk, dr)
+        snaps.append(rows)
+    if any(x != snaps[0] for x in snaps): return None, "contradictory simultaneous eve stats events"
+    return (snaps[0] or None), (None if snaps[0] else "no RX thread in the simultaneous eve event")
 
 def thr_deltas(run):
     """PATCH-6 descriptive deltas (exploratory, no threshold)."""
@@ -177,18 +199,21 @@ def eval_run(run, ev, rule, crit, flush):
     b = NA
     if r["drop_run"] is None: b = NE
     elif r["drop_run"]:
-        b = NE; src = {}
-        if log is not None and stop_ok:
-            rows, bad = per_rx_from_log(log)
-            if bad: r["reasons"].append("invalid per-RX log lines: %s" % bad)
-            elif rows: src["log"] = rows
-        e_rows, e_why = per_rx_from_eve(os.path.join(run, "eve.json"))
-        if e_rows: src["eve"] = e_rows
-        elif e_why: r["flags"].append("eve per-RX: " + e_why)
-        if not src: r["reasons"].append("no per-RX source")
-        elif len(src) == 2 and src["log"] != src["eve"]: r["reasons"].append("per-RX sources disagree (log vs eve)")
+        b = NE; rows = None
+        e_rows, e_why = per_rx_from_eve(os.path.join(run, "eve.json"), last_record_epoch(stats))
+        if not e_rows: r["reasons"].append("D-TA-3 primary source: " + e_why)
+        elif not stop_ok: pass                                   # already a reason: no clean stop, no exit statistics
+        elif log is None: r["reasons"].append("D-TA-3 corroboration: suricata.log unavailable")
         else:
-            rows = next(iter(src.values())); r["per_rx"] = {k: {"packets": v[0], "dropped": v[1]} for k, v in sorted(rows.items())}
+            l_rows, bad = per_rx_from_log(log)
+            if bad: r["reasons"].append("invalid per-RX log lines: %s" % bad)
+            elif not l_rows: r["reasons"].append("D-TA-3 corroboration: no per-RX exit statistics in suricata.log")
+            elif set(l_rows) != set(e_rows): r["reasons"].append("D-TA-3: RX threads differ (log %s vs eve %s)" % (sorted(l_rows), sorted(e_rows)))
+            elif any(l_rows[n][1] != e_rows[n][1] for n in e_rows): r["reasons"].append("D-TA-3: per-RX drops disagree (log vs simultaneous eve)")
+            elif any(l_rows[n][0] < e_rows[n][0] for n in e_rows): r["reasons"].append("D-TA-3: exit packets < snapshot packets (impossible, contradiction)")
+            else: rows = e_rows
+        if rows:
+            r["per_rx"] = {k: {"packets": v[0], "dropped": v[1]} for k, v in sorted(rows.items())}
             nsock = len((geo or {}).get("sockets") or [])
             if len(rows) != crit["TA_a_geometry"]["sockets"] or (nsock and nsock != len(rows)):
                 r["reasons"].append("RX count %d != sockets %d" % (len(rows), nsock or crit["TA_a_geometry"]["sockets"]))
