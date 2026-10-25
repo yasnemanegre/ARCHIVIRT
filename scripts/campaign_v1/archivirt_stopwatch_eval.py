@@ -116,15 +116,43 @@ def engine_drops_coverage(stats_log, tot):
         return "coverage unreadable (%s)" % type(e).__name__
     return None
 
+ANSIBLE_ADHOC_HEAD = re.compile(r"^(\S+) \| ([A-Z]+!?) => \{\s*$")
+
+def engine_stop_lines(text):
+    """r2 (D0I 2026-10-25): engine_stop.txt is what campaign_v1.sh tees from `ansible -m script stop.sh`, i.e. the ad-hoc
+    callback output "<host> | CHANGED => {json}"; stop.sh's own lines are in json["stdout_lines"]. A file without that
+    header is read as stop.sh's raw output (one status per line). Returns (lines, problem)."""
+    raw = text.splitlines()
+    heads = [i for i, l in enumerate(raw) if ANSIBLE_ADHOC_HEAD.match(l)]
+    if not heads: return [l.strip() for l in raw], None
+    if len(heads) != 1: return None, "engine stop status ambiguous (%d ansible host blocks)" % len(heads)
+    status = ANSIBLE_ADHOC_HEAD.match(raw[heads[0]]).group(2)
+    if status not in ("CHANGED", "SUCCESS"): return None, "engine stop command not successful (ansible %s)" % status
+    try:
+        d, end = json.JSONDecoder().raw_decode("\n".join(["{"] + raw[heads[0] + 1:]))
+    except ValueError: return None, "engine stop status unreadable (ansible output is not valid JSON)"
+    if "\n".join(raw[:heads[0]]).strip() or "\n".join(["{"] + raw[heads[0] + 1:])[end:].strip():
+        return None, "engine stop status unreadable (text outside the ansible block)"
+    # rc: a JSON integer equal to 0 only (bool, float, null, string or absent -> unreadable; True == 1 and 0.0 == 0 in Python)
+    if not isinstance(d, dict) or type(d.get("rc")) is not int or d["rc"] != 0 or not isinstance(d.get("stdout_lines"), list):
+        return None, "engine stop status unreadable (ansible rc %s, stdout_lines %s)" % (
+            repr(d["rc"]) if isinstance(d, dict) and "rc" in d else "absent",
+            "absent" if not isinstance(d, dict) or "stdout_lines" not in d else "present")
+    return [str(l).strip() for l in d["stdout_lines"]], None
+
 def engine_stop_problem(path):
     """B-1 option B (opt-in, only when --engine-stop is given; requires an approved amendment): the run's engine must
-    have stopped cleanly (stop.sh: SIGTERM -> final stats dump and EVE flush). Returns a reason string, or None."""
-    try: lines = {l.strip() for l in open(path, encoding="utf-8")}
+    have stopped cleanly (stop.sh: SIGTERM -> final stats dump and EVE flush). Returns a reason string, or None.
+    Rule (B1_option_B_amendment §3): exactly one ARCHIVIRT_ENGINE=STOPPED_CLEAN line and no STOPPED_FORCED line."""
+    try: text = open(path, encoding="utf-8").read()
     except FileNotFoundError: return "engine stop status absent"
     except Exception as e: return "engine stop status unreadable (%s)" % type(e).__name__
-    clean, forced = "ARCHIVIRT_ENGINE=STOPPED_CLEAN" in lines, "ARCHIVIRT_ENGINE=STOPPED_FORCED" in lines
+    lines, problem = engine_stop_lines(text)
+    if problem: return problem
+    clean, forced = lines.count("ARCHIVIRT_ENGINE=STOPPED_CLEAN"), lines.count("ARCHIVIRT_ENGINE=STOPPED_FORCED")
     if clean and forced: return "engine stop status contradictory (CLEAN and FORCED)"
     if forced: return "engine stopped by SIGKILL (STOPPED_FORCED): no final stats dump, EVE flush not guaranteed"
+    if clean > 1: return "engine stop status repeated (%d STOPPED_CLEAN lines)" % clean
     if not clean: return "engine stop status not recorded"
     return None
 
