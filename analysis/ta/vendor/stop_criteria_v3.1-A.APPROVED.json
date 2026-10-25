@@ -1,0 +1,221 @@
+{
+ "schema": "archivirt-stop-criteria/2",
+ "status": "APPROVED",
+ "version": "C1.3-v3.1-candidate-A-t03-50MiB-30s",
+ "note": "Candidate for the first P2-VAL2 IDS series (Suricata, ens7). All threshold values are those of v3 (C1_EXPERIMENTAL_THRESHOLDS, FIXED owner wording + PROPOSED quantifications) except target03_mem_low, which is set per owner option A-t03-50MiB-30s. NOT APPROVED.",
+ "interval_s": 5,
+ "max_missing_fraction": 0.1,
+ "gap_policy": {
+  "value": "unknown_invalidates",
+  "status": "PROPOSED",
+  "alternatives": [
+   "break"
+  ],
+  "meaning": "a MISSING/ERROR sample inside a run of exceeding samples makes that criterion NOT_EVALUABLE (no silent VALID)"
+ },
+ "sustain_definition": "sustain_s: span between the first and the last CONSECUTIVE exceeding sample >= sustain_s (with interval_s=5, sustain_s=60 needs 13 consecutive samples); sustain_samples: number of consecutive exceeding samples. 0 = a single sample suffices.",
+ "metrics": {
+  "host_mem_available_mib": {
+   "source": "host /proc/meminfo MemAvailable",
+   "unit": "MiB",
+   "modes": [
+    "ids",
+    "ips",
+    "baseline"
+   ]
+  },
+  "host_swap_used_mib": {
+   "source": "host /proc/meminfo SwapTotal-SwapFree",
+   "unit": "MiB",
+   "modes": [
+    "ids",
+    "ips",
+    "baseline"
+   ]
+  },
+  "host_swapin_pages_per_s": {
+   "source": "host /proc/vmstat pswpin (rate)",
+   "unit": "pages/s (4 KiB)",
+   "modes": [
+    "ids",
+    "ips",
+    "baseline"
+   ],
+   "first_sample": "NOT_APPLICABLE"
+  },
+  "host_psi_full_avg10": {
+   "source": "host /proc/pressure/memory full avg10",
+   "unit": "%",
+   "modes": [
+    "ids",
+    "ips",
+    "baseline"
+   ]
+  },
+  "host_psi_full_avg60": {
+   "source": "host /proc/pressure/memory full avg60",
+   "unit": "%",
+   "modes": [
+    "ids",
+    "ips",
+    "baseline"
+   ]
+  },
+  "host_oom_kill_delta": {
+   "source": "host /proc/vmstat oom_kill (delta since run start)",
+   "unit": "count",
+   "modes": [
+    "ids",
+    "ips",
+    "baseline"
+   ]
+  },
+  "monitor_mem_available_mib": {
+   "source": "remote (T1): monitor /proc/meminfo",
+   "unit": "MiB",
+   "modes": [
+    "ids",
+    "ips",
+    "baseline"
+   ]
+  },
+  "target03_mem_available_mib": {
+   "source": "remote (T1): target-03 /proc/meminfo",
+   "unit": "MiB",
+   "modes": [
+    "ids",
+    "ips",
+    "baseline"
+   ]
+  },
+  "capture_iface_drops_delta": {
+   "source": "remote (T1): monitor ens6+ens7 rx_dropped (delta)",
+   "unit": "packets",
+   "modes": [
+    "ids",
+    "baseline"
+   ],
+   "not_applicable_reason": "ips: mirror/capture interfaces not used (Article-2 IPS runs captured 0-4 packets)"
+  },
+  "nfq_queue_dropped_delta": {
+   "source": "remote (T1): monitor /proc/net/netfilter/nfnetlink_queue queue_dropped+user_dropped (delta)",
+   "unit": "packets",
+   "modes": [
+    "ips"
+   ],
+   "not_applicable_reason": "ids/baseline: no NFQUEUE"
+  }
+ },
+ "criteria": {
+  "host_mem_available_low": {
+   "origin": "FIXED",
+   "metric": "host_mem_available_mib",
+   "op": "<",
+   "value": 300,
+   "sustain_s": 60,
+   "immediate": true
+  },
+  "host_mem_available_reference": {
+   "origin": "FIXED (owner decision 2026-10-21: >= 900 MiB for 30 consecutive min)",
+   "metric": "host_mem_available_mib",
+   "op": "<",
+   "value": 900,
+   "sustain_samples": 1
+  },
+  "host_swap_used_high": {
+   "origin": "FIXED",
+   "metric": "host_swap_used_mib",
+   "op": ">",
+   "value": 2560,
+   "sustain_samples": 1
+  },
+  "host_oom_kill": {
+   "origin": "FIXED",
+   "metric": "host_oom_kill_delta",
+   "op": ">",
+   "value": 0,
+   "sustain_samples": 1,
+   "immediate": true
+  },
+  "monitor_mem_available_low": {
+   "origin": "FIXED",
+   "metric": "monitor_mem_available_mib",
+   "op": "<",
+   "value": 200,
+   "sustain_samples": 1
+  },
+  "capture_iface_drops": {
+   "origin": "FIXED (wording) / PROPOSED (value 0)",
+   "metric": "capture_iface_drops_delta",
+   "op": ">",
+   "value": 0,
+   "sustain_samples": 1
+  },
+  "nfq_queue_drops": {
+   "origin": "PROPOSED",
+   "metric": "nfq_queue_dropped_delta",
+   "op": ">",
+   "value": 0,
+   "sustain_samples": 1
+  },
+  "swapin_sustained": {
+   "origin": "PROPOSED",
+   "metric": "host_swapin_pages_per_s",
+   "op": ">",
+   "value": 100,
+   "sustain_s": 30
+  },
+  "memory_pressure_avg10": {
+   "origin": "PROPOSED",
+   "metric": "host_psi_full_avg10",
+   "op": ">",
+   "value": 5.0,
+   "sustain_samples": 2
+  },
+  "memory_pressure_avg60": {
+   "origin": "PROPOSED",
+   "metric": "host_psi_full_avg60",
+   "op": ">",
+   "value": 2.0,
+   "sustain_samples": 1
+  },
+  "target03_mem_low": {
+   "origin": "PROPOSED (C1 §2: < 50 MiB sustained >= 30 s)",
+   "metric": "target03_mem_available_mib",
+   "op": "<",
+   "value": 50,
+   "sustain_s": 30
+  }
+ },
+ "engine_drops": {
+  "origin": "PROPOSED",
+  "modes": [
+   "ids"
+  ],
+  "source": "Suricata stats.log of the run (af-packet: capture.kernel_packets / capture.kernel_drops, Total rows)",
+  "not_applicable_reason": "ips (NFQ): no capture.kernel_* counters expected - covered by nfq_queue_drops; baseline: no engine",
+  "abs_max_below_packets": 100000,
+  "abs_max": 0,
+  "rel_max_above": 0.001,
+  "absent_counter_policy": {
+   "value": "missing",
+   "status": "PROPOSED",
+   "alternatives": [
+    "zero_if_family_present"
+   ],
+   "meaning": "an absent counter is MISSING (NOT_EVALUABLE), never converted to 0"
+  }
+ },
+ "derived_from": {
+  "path": "campaign_v1/stop_criteria/stop_criteria_v3.PROPOSED.json",
+  "sha256": "e8c5c52b9400a7c89152d9481713b90f39a09a51f5a9a7ce4ee906c3c9a034c9"
+ },
+ "pending_owner_decisions": [
+  "approve or correct R1..R8 (PROPOSED values)",
+  "confirm target-03 option A-t03-50MiB-30s"
+ ],
+ "approval": {
+  "reference": "APPROVAL-P2-VAL2-A-2026-10-21 | date: 2026-10-21 | approver: propriétaire du projet ARCHIVIRT (responsable du projet) | decision: variante A (target-03 < 50 MiB sustained 30 s), all other values exactly as in the candidate A files",
+  "candidate_sha256": "b04a9d21dda53448a3054db5d1c251a352ca7f3c4ea0a5f4efc80ce4b34921aa"
+ }
+}
