@@ -21,7 +21,9 @@ def slog(rx, ring=True, extra=""):
     if ring: L += ["22/10/2026 -- 18:33:28 - <Perf> - AF_PACKET RX Ring params: block_size=32768 block_nr=103 frame_size=1600 frame_nr=2060"] * 2
     L += ["22/10/2026 -- 18:33:45 - <Perf> - (%s) Kernel: Packets %d, dropped %d" % (n, p, d) for n, (p, d) in rx.items()]
     return "\n".join(L) + "\n" + extra
-def build(name, base, rx=None, geom=GEOM, log=None, status="COMPLETE", stop="ARCHIVIRT_ENGINE=STOPPED_CLEAN\n", eve_rx=None, residual0=True, perf=True):
+def build(name, base, rx=None, geom=GEOM, log=None, status="COMPLETE", stop="ARCHIVIRT_ENGINE=STOPPED_CLEAN\n", eve_rx=None, residual0=True, perf=True, eve_shift=0, eve_dup=None):
+    if eve_rx is None and rx is not None: eve_rx = rx          # r2 (D-TA-3 A): a D0I run carries BOTH sources by default
+    if eve_rx == "NOEVE": eve_rx = None
     run = os.path.join(WK, name, "ids", "SCN-001", base); shutil.copytree(os.path.join(SRC, base), run)
     if residual0 and base != "SCN-001-RUN-001":     # D0 copies have flush residual 8/70/7; D0I (3b) expects 0
         st = open(run + "/stats.log").read(); recs = re.split(r"(?m)(?=^-{10,}\nDate:)", st)
@@ -39,7 +41,13 @@ def build(name, base, rx=None, geom=GEOM, log=None, status="COMPLETE", stop="ARC
     if eve_rx is not None:
         L = open(run + "/eve.json").readlines(); i = max(k for k, l in enumerate(L) if '"event_type":"stats"' in l)
         e = json.loads(L[i]); e["stats"]["threads"] = {n: {"capture": {"kernel_packets": p, "kernel_drops": d}} for n, (p, d) in eve_rx.items()}
-        L[i] = json.dumps(e, separators=(",", ":")) + "\n"; open(run + "/eve.json", "w").writelines(L)
+        if eve_shift:
+            import datetime as _dt
+            ts = _dt.datetime.strptime(e["timestamp"], "%Y-%m-%dT%H:%M:%S.%f%z") + _dt.timedelta(seconds=eve_shift); e["timestamp"] = ts.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        L[i] = json.dumps(e, separators=(",", ":")) + "\n"
+        if eve_dup is not None:
+            e2 = json.loads(L[i]); e2["stats"]["threads"] = {n: {"capture": {"kernel_packets": p, "kernel_drops": d}} for n, (p, d) in eve_dup.items()}; L.insert(i + 1, json.dumps(e2, separators=(",", ":")) + "\n")
+        open(run + "/eve.json", "w").writelines(L)
     if perf:
         for t, base_v in (("start", 0), ("end", 1)):
             open(os.path.join(run, "perf_%s.txt" % t), "w").write("wall_ns=1\nthr_rx_01_run_ns=%d\nthr_rx_01_wait_ns=%d\nthr_rx_02_run_ns=%d\nthr_rx_02_wait_ns=%d\n" % (10 + 50 * base_v, 5 + 90 * base_v, 10 + 60 * base_v, 5 + 80 * base_v))
@@ -65,7 +73,7 @@ def case(tid, desc, ser, exp, rc, flush="disabled", check=None): CASES.append((t
 case("N01", "nominal: geometry OK, both RX drop, sum == Total, residual 0", lambda: series("N01"), "DEMONSTRATED", 5,
      check=lambda r: r["provisional"] and runst(r, "SCN-001-RUN-002", "TA_b") == "MET" and runst(r, "SCN-001-RUN-002", "TA_c") == "MET")
 case("N02", "nominal with suffixed thread names RX#01-ens7", lambda: series("N02", mods={"rx": {"RX#01-ens7": (3075, 200), "RX#02-ens7": (3075, 258)}}), "DEMONSTRATED", 5)
-case("N03", "per-RX from eve threads only (no exit lines in log)", lambda: series("N03", mods={"rx": None, "log": slog({}), "eve_rx": OK_RX}), "DEMONSTRATED", 5)
+case("N03", "r2: eve per-RX present but NO exit lines in log (clean stop) -> corroboration missing -> NOT_EVALUABLE", lambda: series("N03", mods={"rx": None, "log": slog({}), "eve_rx": OK_RX}), "NOT_EVALUABLE", 4)
 case("N04", "per-RX log and eve agree", lambda: series("N04", mods={"eve_rx": OK_RX}), "DEMONSTRATED", 5)
 case("N05", "two drop runs (002 and 009) both consistent", lambda: (series("N05"), build("N05", "SCN-001-RUN-009", rx={"RX#01": (3080, 30), "RX#02": (3080, 35)}))[0], "DEMONSTRATED", 5)
 case("Z01", "no drop run at all -> mechanism not observable", lambda: series("Z01", with_drop=False), "NOT_EVALUABLE", 4)
@@ -89,6 +97,11 @@ case("A11", "r1: three sockets (more than required) -> latent sourced refutation
 case("A09", "geometry JSON truncated (sha recorded on the truncated file)", lambda: series("A09", mods={"geom": json.dumps(GEOM)[:40]}), "NOT_EVALUABLE", 4)
 case("B01", "drops on one RX only -> sourced refutation (b)", lambda: series("B01", mods={"rx": {"RX#01": (3075, 458), "RX#02": (3075, 0)}}), "REFUTED", 3)
 case("B02", "sum(RX) != Total -> contradiction NOT_EVALUABLE", lambda: series("B02", mods={"rx": {"RX#01": (3075, 200), "RX#02": (3075, 250)}}), "NOT_EVALUABLE", 4)
+case("B10", "r2: exit packets > snapshot packets, drops equal -> accepted (packets after the last snapshot)", lambda: series("B10", mods={"eve_rx": {"RX#01": (3000, 200), "RX#02": (3070, 258)}}), "DEMONSTRATED", 5)
+case("B11", "r2: exit packets < snapshot packets -> contradiction -> NOT_EVALUABLE", lambda: series("B11", mods={"eve_rx": {"RX#01": (3100, 200), "RX#02": (3075, 258)}}), "NOT_EVALUABLE", 4)
+case("B12", "r2: eve per-RX only in an event NOT simultaneous with the final stats.log record -> NOT_EVALUABLE", lambda: series("B12", mods={"eve_shift": 8}), "NOT_EVALUABLE", 4)
+case("B13", "r2: log per-RX only (no eve threads) -> primary source missing -> NOT_EVALUABLE", lambda: series("B13", mods={"eve_rx": "NOEVE"}), "NOT_EVALUABLE", 4)
+case("B14", "r2: two simultaneous eve events with different per-RX values -> NOT_EVALUABLE", lambda: series("B14", mods={"eve_dup": {"RX#01": (3075, 201), "RX#02": (3075, 257)}}), "NOT_EVALUABLE", 4)
 case("B03", "log and eve per-RX disagree", lambda: series("B03", mods={"eve_rx": {"RX#01": (3075, 210), "RX#02": (3075, 248)}}), "NOT_EVALUABLE", 4)
 case("B04", "no per-RX source at all", lambda: series("B04", mods={"rx": None, "log": slog({})}), "NOT_EVALUABLE", 4)
 case("B05", "per-RX value non-ASCII / invalid", lambda: series("B05", mods={"rx": None, "log": slog({}) + "x - <Perf> - (RX#01) Kernel: Packets 3075, dropped ٢٠٠\nx - <Perf> - (RX#02) Kernel: Packets 3075, dropped 258\n"}), "NOT_EVALUABLE", 4)
@@ -178,7 +191,9 @@ MUTANTS = {
     "collection status ignored": ('extra_ok = x["status"] == "COMPLETE" and not x["problems"]', 'extra_ok = True'),
     "sha verification skipped": ('if os.path.isfile(p) and sha(p) == m.group(1): out["verified"]', 'if os.path.isfile(p): out["verified"]'),   # attempt 1 left an orphan else (syntax error = trivially caught)
     "zero-copy check removed": ('elif g["zero_copy_message_must_be_absent"] and re.search(r"enabling zero copy mode", log): a = NOT_MET', 'elif False: a = NOT_MET'),
-    "log/eve disagreement ignored": ('elif len(src) == 2 and src["log"] != src["eve"]:', 'elif False:'),
+    "r2 per-RX drop disagreement ignored": ('elif any(l_rows[n][1] != e_rows[n][1] for n in e_rows):', 'elif False:'),
+    "r2 non-simultaneous eve accepted": ('            if t == target_epoch: found.append(e)', '            found.append(e)'),
+    "r2 exit packets < snapshot accepted": ('elif any(l_rows[n][0] < e_rows[n][0] for n in e_rows):', 'elif False:'),
     "stop status ignored": ('if stop is None or "STOPPED_CLEAN" not in stop:', 'if False:'),
     "provisional treated as approved": ('return 0 if not res["provisional"] else 5', 'return 0'),
 }

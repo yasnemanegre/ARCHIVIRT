@@ -1,0 +1,127 @@
+{
+ "schema": "archivirt-ta-criteria/1",
+ "status": "APPROVED",
+ "status_note": "M-6 FINAL, signed by the project owner 2026-10-25T00:50:24Z: all T-A definitions approved; D-TA-3 option A (decided after V-1).",
+ "arm": "D0I",
+ "sources": {
+  "TA": "VALIDATION-FINALE-ENGINE-DROPS-20261022T215833Z/SCIENTIFIC_VALIDITY.md section 6 (T-A a/b/c and refutations); ROOT_CAUSE_ANALYSIS.md section 5 item 3",
+  "TA_origin": "RESOLUTION-ENGINE-DROPS-20261022T205536Z/CAPTURE_FIX.md section 5 (T-A row, Gardes row)",
+  "geometry_values": "measured V2 / 1600 B / 2060 frames / 2 sockets (RESOLUTION evidence/ring_v2_evidence.txt; re-measured VALIDATION-FINALE evidence/geometry_r1_live_readonly_service_instance.txt)",
+  "coverage": "VALIDATION-FINALE PARSER_VALIDATION.md section 4 (PATCH-2r1)",
+  "collection": "VALIDATION-FINALE CAPTURE_CONFIGURATION_REVIEW.md section 4 (ENGINE_EXTRA_STATUS, engine_stop.txt)",
+  "M3_timing_guard": "RESOLUTION CAPTURE_FIX.md section 5 Gardes: stats writes outside [attack - 0.1 s ; end + 0.5 s]; overlap -> flag the run",
+  "rx_naming": "ARCHIVIRT campaign_v1/engines/suricata.sh lines 84-88: single interface -> RX#nn without suffix"
+ },
+ "TA_a_geometry": {
+  "layout": "TPACKET_V2",
+  "frames_per_socket": 2060,
+  "sockets": 2,
+  "zero_copy_message_must_be_absent": true
+ },
+ "TA_b_per_rx": {
+  "scope": "every run with kernel_drops > 0",
+  "rule": "dropped > 0 on EVERY RX thread and sum(RX dropped) == stats.log Total kernel_drops",
+  "refutation": "drops on a strict subset of the RX threads (with complete, consistent per-RX data)",
+  "source": "D-TA-3 option A: primary = eve 'stats' event emitted in the SAME second as the final stats.log record (same snapshot as the Total); corroboration = per-RX exit statistics of suricata.log (clean stop): same RX threads, drops EQUAL, packets >= snapshot. Missing simultaneous event, missing corroboration, any drop disagreement or fewer exit packets -> NOT_EVALUABLE. Engine-agnostic principle: per-RX counters and Total from the same snapshot."
+ },
+ "TA_c_residual": {
+  "scope": "every run with kernel_drops > 0",
+  "formula": "capture.kernel_packets - capture.kernel_drops - decoder.pkts (last stats.log record, Total rows)",
+  "expected": 0,
+  "prerequisite": "use-emergency-flush disabled (PATCH-3b) for the run",
+  "refutation": "residual > 0 with the prerequisite met",
+  "scope_note": "SCIENTIFIC_VALIDITY 6(c) states no scope; ROOT_CAUSE section 5 states 'in every run with drops'. The evaluator applies the drop-run scope and REPORTS non-drop runs separately (scope = decision point D-TA-1)."
+ },
+ "TA_series": {
+  "requires_at_least_one_drop_run": true,
+  "note": "with no drop run the mechanism is not observable (SCIENTIFIC_VALIDITY 4: P(>=1 drop run)=0.965 at p=6/21)"
+ },
+ "guards": {
+  "M3_stats_write_window_s": {
+   "before_attack_start": 0.1,
+   "after_attack_end": 0.5,
+   "action": "FLAG (does not change the T-A verdict)"
+  },
+  "rss_delta_mib_max": {
+   "value": 30,
+   "status": "DESCRIPTIVE (D-TA-2)",
+   "note": "CAPTURE_FIX says 'ecart de RSS <= 30 Mio' versus D0 and P2-VAL2 without defining the statistic (mean? median? per run?) -> reported descriptively, never used for a verdict (decision D-TA-2)"
+  },
+  "cpu_comparison": {
+   "status": "DESCRIPTIVE (TA-g3)",
+   "note": "no threshold defined anywhere -> descriptive only"
+  }
+ },
+ "contention_patch6": {
+  "status": "EXPLORATORY",
+  "note": "SCIENTIFIC_VALIDITY 6: ratio wait/run of RX higher in drop runs, exploratory, no threshold -> descriptive only"
+ },
+ "m6": {
+  "decision_record": "reports/M6-RESOLUTION-20261024T233138Z/DECISION_M6.md",
+  "derived_from": {
+   "file": "ta_criteria.D0I.PROPOSED.json",
+   "sha256": "e736f403e2668e7e0cfdb26dcb2afc8683d8e656a64f210f3ae443ebbcccdfcf"
+  },
+  "evaluator": {
+   "file": "analysis/ta/ta_evaluator.py (r2)",
+   "sha256": "b2b9db6be0cf791797427e7240746253510d138c7c9e6560ad46f1e2519d072a",
+   "change": "D-B2-2 explicit (r1) + D-TA-3 option A (r2)"
+  },
+  "decisions": {
+   "M-1": "1r1 + 2r1 (integrated, commit 335a1fa)",
+   "D-B2-1": "probe r2 (integrated)",
+   "D-B2-3": "INCONSISTENT = layout/frames disagreement, block sizes ignored -> NOT_EVALUABLE",
+   "D-B2-2": "required socket absent -> NOT_EVALUABLE (no cross-check rule)",
+   "D-TA-1": "residual scope = runs with drops; other runs' residuals reported separately",
+   "D-TA-2": "RSS guard descriptive only (no reference defined)",
+   "D-TA-4": "zero-copy message present -> NOT_MET (not a sourced refutation)",
+   "TA-g3": "CPU comparison descriptive only",
+   "D-B1": "option B, Suricata IDS only for now, non-retroactive; effective from the first series run with the option-B code integrated and recorded in provenance. Extension to Suricata IPS and Snort 3 (IDS/IPS) by a separate amendment when those modes are integrated (B11 stages 2-3)",
+   "D-TA-3": "option A (decided 2026-10-25 after V-1: eve stats and stats.log emitted in the same second, 3/3 observations)",
+   "D-B1-bis": "scope: Suricata IDS now; IPS and Snort 3 later (separate amendment)"
+  },
+  "criteria_status": {
+   "TA-a1": "APPROVED",
+   "TA-a2": "APPROVED",
+   "TA-a3": "APPROVED",
+   "TA-a4": "APPROVED",
+   "TA-a5": "APPROVED",
+   "TA-b1": "APPROVED",
+   "TA-b2": "APPROVED",
+   "TA-c1": "APPROVED",
+   "TA-d1": "APPROVED",
+   "TA-d2": "APPROVED",
+   "TA-d3": "APPROVED",
+   "TA-d4": "APPROVED",
+   "TA-s1": "APPROVED",
+   "TA-g1": "APPROVED",
+   "TA-g2": "APPROVED (descriptive)",
+   "TA-g3": "APPROVED (descriptive)",
+   "TA-x1": "EXPLORATORY"
+  },
+  "unchanged": [
+   "stop_criteria_v3.1-A.APPROVED.json (bf466291)",
+   "experiment params (30bf2ef8)",
+   "protocol 13 planned / >=10 valid / <=2 invalid",
+   "Article 2 frozen data 545/545"
+  ],
+  "signature": {
+   "signed_by": "project owner (yasnemanegre)",
+   "signed_at_utc": "2026-10-25T00:50:24Z",
+   "statement": "« ok. je signe M-6 final tel que proposé » — propriétaire du projet (yasnemanegre), 2026-10-25T00:50:24Z",
+   "scope": "FINAL"
+  },
+  "candidate_sha256": "bd206976283538e9cd3731060590a4381ee9a25bca40a2a4818014bf5178a97b",
+  "derived_from_partial": {
+   "file": "ta_criteria.D0I.APPROVED_PARTIAL.json",
+   "sha256": "768fd0be59e055656eaa82bbcc33eaaab6c5e2065e5191f5312d19e26220b83e",
+   "signed_partial": {
+    "signed_by": "project owner (yasnemanegre)",
+    "signed_at_utc": "2026-10-24T23:52:38Z",
+    "statement": "« je suis daccord avec toutes tes recommandations » — réponse du propriétaire du projet (yasnemanegre), 2026-10-24, approuvant : D-B1 option B limitée à Suricata IDS (extension IPS/Snort 3 à l'intégration de ces modes), les décisions M-6 du DECISION_M6.md §1, et le périmètre B11 complet par étapes.",
+    "scope": "PARTIAL: TA-b1/b2 deferred (D-TA-3 after V-1); final M-6 signature pending"
+   }
+  },
+  "v1_evidence": "reports/D0I-PREP-20261025T000931Z/V1/V1_RESULT.md"
+ }
+}
