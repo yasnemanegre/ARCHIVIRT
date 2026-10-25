@@ -1,0 +1,12 @@
+archivirt-monitor-ids | CHANGED => {
+    "changed": true,
+    "rc": 0,
+    "stderr": "Shared connection to 10.0.3.10 closed.\r\n",
+    "stderr_lines": [
+        "Shared connection to 10.0.3.10 closed."
+    ],
+    "stdout": "ARCHIVIRT_ENGINE=STOPPED_CLEAN\r\n",
+    "stdout_lines": [
+        "ARCHIVIRT_ENGINE=STOPPED_CLEAN"
+    ]
+}
