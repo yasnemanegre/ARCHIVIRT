@@ -85,8 +85,9 @@ def per_rx_from_log(text):
     return rows, bad
 
 def last_record_epoch(stats_log):
-    """UTC epoch (s) of the LAST 'Date: MM/DD/YYYY -- HH:MM:SS' record of stats.log; None if absent/invalid."""
-    try: dates = re.findall(r"(?m)^Date: (\d\d)/(\d\d)/(\d{4}) -- (\d\d):(\d\d):(\d\d)", open(stats_log).read())
+    """UTC epoch (s) of the LAST 'Date: M/D/YYYY -- HH:MM:SS' record of stats.log; None if absent/invalid.
+    r3: Suricata does not zero-pad month and day (e.g. 11/9/2026), so each takes 1 or 2 digits."""
+    try: dates = re.findall(r"(?m)^Date: (\d{1,2})/(\d{1,2})/(\d{4}) -- (\d\d):(\d\d):(\d\d)", open(stats_log).read())
     except Exception: return None
     if not dates: return None
     mo, dd, yy, hh, mi, ss = (int(x) for x in dates[-1])
