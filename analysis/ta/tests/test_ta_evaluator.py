@@ -129,6 +129,22 @@ case("S04", "no-drop run with incomplete evidence still blocks (a)", lambda: ser
 case("G01", "M3 guard: stats write inside burst window -> FLAG only", lambda: (series("G01"), _eve_ts("G01"))[0], "DEMONSTRATED", 5,
      check=lambda r: any(f.startswith("M3") for rr in r["runs"] for f in rr["flags"]))
 case("H01", "historical D0 copies as-is (no engine_extra) never favourable", lambda: _hist("H01"), "NOT_EVALUABLE", 4)
+def _redate(ser, us, iso, only_stats=False):
+    """r3: rewrite the stats.log Date lines to <us>, and the ISO dates of the other run files to <iso>, in the COPY."""
+    base = os.path.join(ser, "ids", "SCN-001")
+    for b in os.listdir(base):
+        for f in os.listdir(os.path.join(base, b)):
+            p = os.path.join(base, b, f)
+            if not os.path.isfile(p) or (only_stats and f != "stats.log"): continue
+            t = open(p, errors="surrogateescape").read()
+            n = re.sub(r"(?m)^Date: \d\d/\d\d/\d{4}", "Date: " + us, t) if f == "stats.log" else t.replace("2026-10-22T", iso + "T")
+            if n != t: open(p, "w", errors="surrogateescape").write(n)
+    return ser
+case("D01", "r3: stats.log date with single-digit day (11/9/2026) is parsed", lambda: _redate(series("D01"), "11/9/2026", "2026-11-09"), "DEMONSTRATED", 5)
+case("D02", "r3: single-digit month and day (1/2/2026) are parsed", lambda: _redate(series("D02"), "1/2/2026", "2026-01-02"), "DEMONSTRATED", 5)
+case("D03", "r3: single-digit date without simultaneous eve event -> NOT_EVALUABLE", lambda: _redate(series("D03"), "11/9/2026", "2026-11-09", only_stats=True), "NOT_EVALUABLE", 4)
+case("D04", "r3: three-digit day is rejected -> NOT_EVALUABLE", lambda: _redate(series("D04"), "11/009/2026", "2026-11-09"), "NOT_EVALUABLE", 4)
+case("D05", "r3: day/month order is not guessed (9/11/2026 vs eve 2026-11-09) -> NOT_EVALUABLE", lambda: _redate(series("D05"), "9/11/2026", "2026-11-09"), "NOT_EVALUABLE", 4)
 
 def _run_dir(name, base="SCN-001-RUN-002"): return os.path.join(WK, name, "ids", "SCN-001", base)
 def _edit_dec(name, delta):
@@ -183,6 +199,7 @@ def mutant(old, new):
     d = os.path.join(WK, "mut%d" % len([x for x in os.listdir(WK) if x.startswith("mut")])); shutil.copytree(EVD, d, ignore=shutil.ignore_patterns("tests", "__pycache__"))
     p = os.path.join(d, "ta_evaluator.py"); s = open(p).read(); assert s.count(old) == 1, old; open(p, "w").write(s.replace(old, new)); return p
 MUTANTS = {
+    "r3 reverted: two-digit month/day required": (r'(\d{1,2})/(\d{1,2})/(\d{4}) -- ', r'(\d\d)/(\d\d)/(\d{4}) -- '),
     "missing evidence ignored (no downgrade)": ('    if r["reasons"]:\n        for k in', '    if False:\n        for k in'),
     "no-drop series accepted": ('crit["TA_series"]["requires_at_least_one_drop_run"]: why', 'False: why'),
     "sum(RX) check removed": ('elif sum(v[1] for v in rows.values()) != kd:', 'elif False:'),
