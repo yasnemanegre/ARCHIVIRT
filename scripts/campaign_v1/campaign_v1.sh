@@ -69,6 +69,14 @@ MIN_VALID_RUNS="${MIN_VALID_RUNS:-$RUNS}"; MAX_INVALID_RUNS="${MAX_INVALID_RUNS:
 [[ "$MIN_VALID_RUNS" =~ ^[1-9][0-9]{0,2}$ && "$MAX_INVALID_RUNS" =~ ^[0-9]{1,3}$ ]] && (( MIN_VALID_RUNS + MAX_INVALID_RUNS <= RUNS )) \
     || { echo "[ARCHIVIRT] ABORT: invalid MIN_VALID_RUNS/MAX_INVALID_RUNS ($MIN_VALID_RUNS/$MAX_INVALID_RUNS) for RUNS=$RUNS" >&2; exit 4; }
 
+# Acceptance evidence (P1, 2026-11-09): declared values are checked BEFORE any side effect. Unset = rule stays NOT_EVALUATED.
+# ARCHIVIRT_ACCEPT_EVIDENCE_VALIDATE_BEGIN
+[[ -z "${ARCHIVIRT_DECLARED_MEM:-}" || "$ARCHIVIRT_DECLARED_MEM" =~ ^[A-Za-z0-9_-]+=[0-9]+(,[A-Za-z0-9_-]+=[0-9]+)*$ ]] \
+    || { echo "[ARCHIVIRT] ABORT: invalid ARCHIVIRT_DECLARED_MEM (domain=MiB[,domain=MiB...])" >&2; exit 4; }
+[[ -z "${ARCHIVIRT_EGRESS_SHA256:-}" || "$ARCHIVIRT_EGRESS_SHA256" =~ ^[0-9a-f]{64}$ ]] \
+    || { echo "[ARCHIVIRT] ABORT: invalid ARCHIVIRT_EGRESS_SHA256 (64 lowercase hex)" >&2; exit 4; }
+# ARCHIVIRT_ACCEPT_EVIDENCE_VALIDATE_END
+
 CAMPAIGN_ID="${CAMPAIGN_PREFIX}-${MODE}-$(date -u +%Y%m%dT%H%M%SZ)"
 [[ ! -e "$RESULTS/$CAMPAIGN_ID" ]] || { echo "[ARCHIVIRT] ABORT: $RESULTS/$CAMPAIGN_ID already exists (results are never overwritten)" >&2; exit 4; }
 CAMPAIGN_DIR="$(python3 -B "$PROCESSORS/results_guard.py" --repo "$ROOT" --dest "$RESULTS/$CAMPAIGN_ID" \
@@ -545,8 +553,15 @@ done
 
 python3 "$PROCESSORS/summarize.py" "$CAMPAIGN_DIR"
 # Per-scenario conformity (>= MIN_VALID_RUNS valid, <= MAX_INVALID_RUNS non-valid, <= RUNS runs) + C1 rate rules, all runs kept.
+# ARCHIVIRT_ACCEPT_EVIDENCE_ARGS_BEGIN
+ACCEPT_EVIDENCE=()
+if [[ -n "${ARCHIVIRT_DECLARED_MEM:-}" ]]; then ACCEPT_EVIDENCE+=(--declared-mem "$ARCHIVIRT_DECLARED_MEM"); fi
+if [[ -n "${ARCHIVIRT_EGRESS_SHA256:-}" ]]; then ACCEPT_EVIDENCE+=(--egress-sha "$ARCHIVIRT_EGRESS_SHA256"); fi
+if bash "$PROCESSORS/collect_ids_after.sh" "$CAMPAIGN_DIR" >/dev/null; then ACCEPT_EVIDENCE+=(--ids-after "$CAMPAIGN_DIR/ids_deployed_after.json")
+else log "IDS files after the campaign not collected: ids_deployed_unchanged stays NOT_EVALUATED"; fi
+# ARCHIVIRT_ACCEPT_EVIDENCE_ARGS_END
 python3 -B "$PROCESSORS/campaign_acceptance.py" "$CAMPAIGN_DIR" --max-runs "$RUNS" --min-valid "$MIN_VALID_RUNS" \
-    --max-invalid "$MAX_INVALID_RUNS" --out "$CAMPAIGN_DIR/campaign_acceptance.json" || log "Scenario conformity NOT met (see campaign_acceptance.json)"
+    --max-invalid "$MAX_INVALID_RUNS" "${ACCEPT_EVIDENCE[@]}" --out "$CAMPAIGN_DIR/campaign_acceptance.json" || log "Scenario conformity NOT met (see campaign_acceptance.json)"
 if [[ -n "$CAMPAIGN_ABORT" ]]; then
     python3 -B -c 'import json,sys; json.dump({"campaign_aborted": True, "reason": sys.argv[2], "exit_status": 6, "signal": None, "phase": sys.argv[4], "ts": sys.argv[3]}, open(sys.argv[1], "w"))' \
         "$CAMPAIGN_DIR/campaign_abort.json" "$CAMPAIGN_ABORT" "$(date -u +%FT%TZ)" "$PHASE"
