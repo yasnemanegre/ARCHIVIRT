@@ -14,7 +14,7 @@ C1 rate rules are evaluated SEPARATELY and reported as such (never merged with t
   c1_scenario_rate: non_valid / runs <= 20 % per scenario;  c1_campaign_rate: non_valid / runs <= 10 % over the campaign.
   Owner decision D-C1 (2026-11-09, option A, not retroactive): with exactly one scenario c1_campaign_rate is NOT_APPLICABLE and leaves
   the verdict rules (10 % would otherwise mean "at most 1 non-valid of 13" and contradict the approved 13/10/2); the rate stays reported.
-Other campaign rules (C1 §4): frozen guard (manual), ids_deployed, declared memory, egress hash, clock, OOM.
+Other campaign rules (C1 §4): frozen guard (--manual, computed by frozen_guard_check.py from the launch manifest PIN lines), ids_deployed, declared memory, egress hash, clock, OOM.
 Every rule status is PASS, FAIL or NOT_EVALUATED (P1, 2026-10-28). PASS needs positive evidence: a rule whose input is
 absent, unreadable or partial is NOT_EVALUATED, never PASS. campaign_verdict: NOT_ACCEPTED if any rule FAILs (a FAIL is
 never hidden by a missing rule), else NOT_EVALUATED if any rule is NOT_EVALUATED, else ACCEPTED; the lists rules_failed /

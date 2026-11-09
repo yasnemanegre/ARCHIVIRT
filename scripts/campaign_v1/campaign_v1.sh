@@ -75,6 +75,8 @@ MIN_VALID_RUNS="${MIN_VALID_RUNS:-$RUNS}"; MAX_INVALID_RUNS="${MAX_INVALID_RUNS:
     || { echo "[ARCHIVIRT] ABORT: invalid ARCHIVIRT_DECLARED_MEM (domain=MiB[,domain=MiB...])" >&2; exit 4; }
 [[ -z "${ARCHIVIRT_EGRESS_SHA256:-}" || "$ARCHIVIRT_EGRESS_SHA256" =~ ^[0-9a-f]{64}$ ]] \
     || { echo "[ARCHIVIRT] ABORT: invalid ARCHIVIRT_EGRESS_SHA256 (64 lowercase hex)" >&2; exit 4; }
+[[ -z "${ARCHIVIRT_FROZEN_MANIFEST:-}" || -r "$ARCHIVIRT_FROZEN_MANIFEST" ]] \
+    || { echo "[ARCHIVIRT] ABORT: ARCHIVIRT_FROZEN_MANIFEST is not a readable file" >&2; exit 4; }
 # ARCHIVIRT_ACCEPT_EVIDENCE_VALIDATE_END
 
 CAMPAIGN_ID="${CAMPAIGN_PREFIX}-${MODE}-$(date -u +%Y%m%dT%H%M%SZ)"
@@ -559,6 +561,11 @@ if [[ -n "${ARCHIVIRT_DECLARED_MEM:-}" ]]; then ACCEPT_EVIDENCE+=(--declared-mem
 if [[ -n "${ARCHIVIRT_EGRESS_SHA256:-}" ]]; then ACCEPT_EVIDENCE+=(--egress-sha "$ARCHIVIRT_EGRESS_SHA256"); fi
 if bash "$PROCESSORS/collect_ids_after.sh" "$CAMPAIGN_DIR" >/dev/null; then ACCEPT_EVIDENCE+=(--ids-after "$CAMPAIGN_DIR/ids_deployed_after.json")
 else log "IDS files after the campaign not collected: ids_deployed_unchanged stays NOT_EVALUATED"; fi
+if [[ -n "${ARCHIVIRT_FROZEN_MANIFEST:-}" ]]; then
+    fg_rc=0; fg_out="$(python3 -B "$PROCESSORS/frozen_guard_check.py" "$ROOT" "$ARCHIVIRT_FROZEN_MANIFEST")" || fg_rc=$?
+    if (( fg_rc <= 1 )) && [[ -n "$fg_out" ]]; then ACCEPT_EVIDENCE+=(--manual "frozen_guard=$fg_out")
+    else log "Frozen guard not computed (rc $fg_rc): frozen_guard stays NOT_EVALUATED"; fi
+fi
 # ARCHIVIRT_ACCEPT_EVIDENCE_ARGS_END
 python3 -B "$PROCESSORS/campaign_acceptance.py" "$CAMPAIGN_DIR" --max-runs "$RUNS" --min-valid "$MIN_VALID_RUNS" \
     --max-invalid "$MAX_INVALID_RUNS" "${ACCEPT_EVIDENCE[@]}" --out "$CAMPAIGN_DIR/campaign_acceptance.json" || log "Scenario conformity NOT met (see campaign_acceptance.json)"

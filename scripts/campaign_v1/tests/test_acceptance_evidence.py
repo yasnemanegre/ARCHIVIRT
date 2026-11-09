@@ -2,7 +2,7 @@
 """Isolated tests of the acceptance evidence chain (P1, 2026-11-09; no lab, no network, nothing outside a temporary directory):
 collect_ids_after.sh against a fake SSH, and the ARCHIVIRT_ACCEPT_EVIDENCE blocks of campaign_v1.sh extracted and run alone.
 Usage: test_acceptance_evidence.py <scripts/campaign_v1 directory>   -> rc 0 iff all PASS"""
-import json, os, re, stat, subprocess, sys, tempfile
+import hashlib, json, os, re, stat, subprocess, sys, tempfile
 HERE = os.path.abspath(sys.argv[1]); SCRIPT = os.path.join(HERE, "collect_ids_after.sh")
 results = []
 def rec(tid, desc, ok, detail=""):
@@ -61,16 +61,48 @@ for tid, desc, env, good in [("V1", "nothing set is allowed (rules stay NOT_EVAL
     cp = validate(**env); ok = (cp.returncode == 0 and "SURVIVED" in cp.stdout) if good else (cp.returncode == 4 and "SURVIVED" not in cp.stdout)
     rec(tid, desc, ok, "rc %d" % cp.returncode)
 
-def build(collect_rc=0, **env):
+def fg(t, manifest, files=()):
+    root = os.path.join(t, "repo"); os.makedirs(root)
+    for rel, body in files:
+        p = os.path.join(root, rel); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w").write(body)
+    m = os.path.join(t, "manifest")
+    if manifest is not None: open(m, "w").write(manifest)
+    return subprocess.run([sys.executable, "-B", "-I", os.path.join(HERE, "frozen_guard_check.py"), root, m], capture_output=True, text=True)
+sha = lambda s: hashlib.sha256(s.encode()).hexdigest()
+for tid, desc, man, files, rc, prefix in [
+    ("F1", "all pins identical", "# x\nFILE z\nPIN %s a/b.py\nPIN %s c.json\n" % (sha("1"), sha("2")), [("a/b.py", "1"), ("c.json", "2")], 0, "PASS:2 pinned"),
+    ("F2", "one pinned file differs", "PIN %s a/b.py\nPIN %s c.json\n" % (sha("1"), sha("2")), [("a/b.py", "x"), ("c.json", "2")], 1, "FAIL:1/2"),
+    ("F3", "a pinned file is missing: FAIL", "PIN %s a/b.py\n" % sha("1"), [], 1, "FAIL:1/1"),
+    ("F4", "manifest absent: no evidence", None, [], 2, ""),
+    ("F5", "manifest without PIN: no evidence", "# x\nFILE z\n", [], 2, ""),
+    ("F6", "malformed PIN line: no evidence", "PIN abc a.py\n", [("a.py", "1")], 2, ""),
+    ("F7", "path escaping the repository: no evidence", "PIN %s ../a.py\n" % sha("1"), [], 2, ""),
+    ("F8", "absolute path: no evidence", "PIN %s /etc/passwd\n" % sha("1"), [], 2, "")]:
+    with tempfile.TemporaryDirectory() as t:
+        cp = fg(t, man, files); ok = cp.returncode == rc and (cp.stdout.startswith(prefix) if prefix else cp.stdout == "")
+        rec(tid, desc, ok, "rc %d %s" % (cp.returncode, cp.stdout.strip()[:80]))
+
+def build(collect_rc=0, fg_stub=None, **env):
     with tempfile.TemporaryDirectory() as t:
         d = os.path.join(t, "p"); os.makedirs(d); open(os.path.join(d, "collect_ids_after.sh"), "w").write("exit %d\n" % collect_rc)
-        e = {k: v for k, v in os.environ.items() if not k.startswith("ARCHIVIRT_")}; e.update(env, PROCESSORS=d, CAMPAIGN_DIR="/camp")
+        if fg_stub: open(os.path.join(d, "frozen_guard_check.py"), "w").write("import sys\nprint(%r, end='')\nsys.exit(%d)\n" % fg_stub)
+        e = {k: v for k, v in os.environ.items() if not k.startswith("ARCHIVIRT_")}; e.update(env, PROCESSORS=d, CAMPAIGN_DIR="/camp", ROOT=d)
         cp = subprocess.run(["bash", "-c", 'set -euo pipefail\nlog() { :; }\n' + BUILD + '\nprintf "%s\\n" "${ACCEPT_EVIDENCE[@]}"; echo END'], capture_output=True, text=True, env=e)
         return cp.returncode, [x for x in cp.stdout.split("\n") if x and x != "END"], "END" in cp.stdout
 rc, a, end = build(); rec("A1", "only --ids-after when nothing is declared", rc == 0 and end and a == ["--ids-after", "/camp/ids_deployed_after.json"], str(a))
 rc, a, end = build(1); rec("A2", "collection failure: no --ids-after, campaign tail not aborted", rc == 0 and end and a == [], str(a))
 rc, a, end = build(0, ARCHIVIRT_DECLARED_MEM=MEM, ARCHIVIRT_EGRESS_SHA256=SHA)
 rec("A3", "declared values are passed", rc == 0 and end and a == ["--declared-mem", MEM, "--egress-sha", SHA, "--ids-after", "/camp/ids_deployed_after.json"], str(a))
+
+IA = ["--ids-after", "/camp/ids_deployed_after.json"]
+rc, a, end = build(0, ("PASS:2 pinned files identical", 0), ARCHIVIRT_FROZEN_MANIFEST="/m"); rec("A4", "frozen guard PASS is passed", rc == 0 and end and a == IA + ["--manual", "frozen_guard=PASS:2 pinned files identical"], str(a))
+rc, a, end = build(0, ("FAIL:1/2 differ", 1), ARCHIVIRT_FROZEN_MANIFEST="/m"); rec("A5", "frozen guard FAIL is passed, tail not aborted", rc == 0 and end and a == IA + ["--manual", "frozen_guard=FAIL:1/2 differ"], str(a))
+rc, a, end = build(0, ("", 2), ARCHIVIRT_FROZEN_MANIFEST="/m"); rec("A6", "no frozen evidence: nothing passed, tail not aborted", rc == 0 and end and a == IA, str(a))
+rc, a, end = build(0); rec("A7", "manifest not set: nothing passed", rc == 0 and end and a == IA, str(a))
+with tempfile.TemporaryDirectory() as t:
+    m = os.path.join(t, "m"); open(m, "w").write("x")
+    rec("V6", "readable manifest accepted", validate(ARCHIVIRT_FROZEN_MANIFEST=m).returncode == 0)
+    rec("V7", "unreadable manifest refused", validate(ARCHIVIRT_FROZEN_MANIFEST=m + ".absent").returncode == 4)
 
 n_fail = results.count(False)
 print("%d/%d PASS" % (len(results) - n_fail, len(results)))
